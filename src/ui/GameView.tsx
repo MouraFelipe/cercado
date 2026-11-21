@@ -107,7 +107,7 @@ export default function GameView(props: GameViewProps) {
       <div key={q} className={`pc ${g.phase !== "over" && g.turn === q ? "on" : ""}`} style={{ ["--pc" as string]: COLORS[q].c, ["--pl" as string]: COLORS[q].l }}>
         <span className="st" style={{ background: COLORS[q].c }} />
         <div className="grow"><b>{who(q)}</b>
-          <small>{"●".repeat(onBoard)}<span className="hollow">{"○".repeat(toPlace)}</span> · Área {ter.scores[q]}</small></div>
+          <small>{"●".repeat(onBoard)}<span className="hollow">{"○".repeat(toPlace)}</span> · Área {g.phase === "place" ? 0 : ter.scores[q]}</small></div>
         {g.opts.players === 3 && g.opts.wallBreak && <span className={`hm ${g.breaksLeft[q] ? "" : "used"}`} title="Derrubar parede (1 vez)">🔨</span>}
       </div>
     );

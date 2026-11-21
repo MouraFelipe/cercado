@@ -41,7 +41,7 @@ export default function Board({ g, marks = {}, onCell, onEdge, onBreak }: {
   onCell?: (c: Cell) => void; onEdge?: (e: Edge) => void; onBreak?: (e: Edge) => void;
 }) {
   const tint: (number | 0)[][] = Array.from({ length: N }, () => Array(N).fill(0));
-  for (const reg of regions(g)) if (reg.owners.length === 1) reg.cells.forEach(c => (tint[c.r][c.c] = reg.owners[0]));
+  if (g.phase !== "place") for (const reg of regions(g)) if (reg.owners.length === 1) reg.cells.forEach(c => (tint[c.r][c.c] = reg.owners[0]));
   const last = [...g.history].reverse().find(h => h.t === "move" || h.t === "place");
   const lastWall = last && last.t === "move" ? last.wall : null;
   const walls: { e: Edge; p: number }[] = [];
