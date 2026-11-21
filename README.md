@@ -4,6 +4,8 @@ Jogo de estratégia para 2 jogadores: mova suas peças, levante muros e cerque o
 
 👉 **Jogar:** https://mourafelipe.github.io/cercado/
 
+<img src="qrcode.png" width="220" alt="QR code do Cercado">
+
 ## Modos
 - **Online com um amigo:** um cria a sala e manda o código (ou o link); cada um joga no seu celular.
 - **Contra o computador:** níveis Fácil e Normal.
