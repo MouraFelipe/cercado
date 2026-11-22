@@ -101,10 +101,12 @@
   .pc b{display:block;font-size:15px;line-height:1.1}.pc small{font-size:12px;color:var(--muted);font-weight:700}
   .pc.on{box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 0 0 2px var(--brass),0 0 18px rgba(240,190,90,.5),0 8px 16px rgba(0,0,0,.35);transform:translateY(-1px)}
   .pc .hm{margin-left:auto;color:#6B4423;display:grid}.pc .hm.used{opacity:.22}
-  .hint{margin:12px 0 12px;text-align:center;font-weight:700;font-size:15px;min-height:44px;display:flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:12px;border-left-width:6px}
+  .hint{margin:12px 0 12px;text-align:center;font-weight:700;font-size:15px;line-height:1.3;height:54px;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:12px;border-left-width:6px}
   .hint.t1{border-left-color:var(--p1)} .hint.t2{border-left-color:var(--p2)}
-  .boardwrap{position:relative;width:100%;max-width:470px;margin:0 auto;filter:drop-shadow(0 16px 20px rgba(0,0,0,.55))}
+  .boardwrap{position:relative;width:100%;max-width:470px;margin:0 auto}
   svg.board{width:100%;height:auto;display:block;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  svg.board.base{filter:drop-shadow(0 16px 20px rgba(0,0,0,.55))}
+  svg.board.layer{position:absolute;left:0;top:0;width:100%;height:100%;will-change:transform}
   .cellhit{cursor:pointer}
   .dest{animation:pulse 1.2s ease-in-out infinite}
   @keyframes pulse{50%{opacity:.4}}
@@ -350,13 +352,10 @@ function hitEdge(e, attr){ // área de toque maior para acertar o muro no celula
   if (e.k==="h") return `<rect ${attr} x="${X(e.c)}" y="${Y(e.r+1)-14}" width="${CELL}" height="28" fill="transparent" style="cursor:pointer"/>`;
   return `<rect ${attr} x="${X(e.c+1)-14}" y="${Y(e.r)}" width="28" height="${CELL}" fill="transparent" style="cursor:pointer"/>`;
 }
-function drawBoard(g, o={}){
-  const q=o.q||"b", live=!!o.live, mine=live && myTurn(), p=g.turn, L=g.last;
-  const regs=C.regions(g), tint=Array.from({length:N},()=>Array(N).fill(0));
-  regs.forEach(reg=>{ if(reg.owners.size===1){ const w=[...reg.owners][0]; reg.cells.forEach(([r,c])=>tint[r][c]=w); } });
-  const P=[boardDefs(q)];
-  const f0=PAD-6, fs=CELL*N+12;
-  /* moldura e fundo dos sulcos */
+/* O tabuleiro é desenhado em partes. Na partida, a madeira (base, com veios pesados de desenhar)
+   fica fixa numa camada e só a camada de cima (áreas, peças e muros) é atualizada: assim a tela não pisca. */
+function boardBase(q){
+  const f0=PAD-6, fs=CELL*N+12, P=[boardDefs(q)];
   P.push(`<g pointer-events="none">
     <rect x="1" y="1" width="${SIZE-2}" height="${SIZE-2}" rx="18" fill="url(#${q}frame)"/>
     <rect x="1" y="1" width="${SIZE-2}" height="${SIZE-2}" rx="18" fill="#000" filter="url(#${q}gf)"/>
@@ -366,19 +365,32 @@ function drawBoard(g, o={}){
     <path d="M${f0+fs-.5},${f0+3} V${f0+fs-.5} H${f0+3}" fill="none" stroke="#FFD7A0" stroke-opacity=".28" stroke-width="1.5"/>`);
   /* casas em relevo com veios */
   for (let r=0;r<N;r++) for (let c=0;c<N;c++) P.push(`<rect x="${X(c)+TI}" y="${Y(r)+TI}" width="${TS}" height="${TS}" rx="3" fill="url(#${q}tile)"/>`);
-  P.push(`<g clip-path="url(#${q}tiles)"><rect x="${PAD}" y="${PAD}" width="${CELL*N}" height="${CELL*N}" fill="#000" filter="url(#${q}gb)"/></g>`);
+  P.push(`<g clip-path="url(#${q}tiles)"><rect x="${PAD}" y="${PAD}" width="${CELL*N}" height="${CELL*N}" fill="#000" filter="url(#${q}gb)"/></g></g>`);
+  return P.join("");
+}
+function boardTint(g){ // casas das áreas já cercadas
+  const P=[];
+  C.regions(g).forEach(reg=>{ if(reg.owners.size===1){ const w=[...reg.owners][0];
+    reg.cells.forEach(([r,c])=>P.push(`<rect x="${X(c)+TI}" y="${Y(r)+TI}" width="${TS}" height="${TS}" rx="3" fill="${COL[w].tint}"/>`)); } });
+  return P.join("");
+}
+function boardTop(q){ // bordas das casas, luz e pinos de latão
+  const P=[];
   for (let r=0;r<N;r++) for (let c=0;c<N;c++){
     const x=X(c)+TI, y=Y(r)+TI;
-    if (tint[r][c]) P.push(`<rect x="${x}" y="${y}" width="${TS}" height="${TS}" rx="3" fill="${COL[tint[r][c]].tint}"/>`);
     P.push(`<path d="M${x+.8},${y+TS-1} V${y+.8} H${x+TS-1}" fill="none" stroke="#FFF0D2" stroke-opacity=".6" stroke-width="1.5"/>`);
     P.push(`<path d="M${x+TS-.8},${y+1.5} V${y+TS-.8} H${x+1.5}" fill="none" stroke="#4A2509" stroke-opacity=".5" stroke-width="1.6"/>`);
   }
   P.push(`<rect x="0" y="0" width="${SIZE}" height="${SIZE}" rx="18" fill="url(#${q}light)"/>`);
-  /* pinos de latão nos cruzamentos */
   for (let r=1;r<N;r++) for (let c=1;c<N;c++) P.push(`<circle cx="${X(c)+.7}" cy="${Y(r)+1}" r="2.7" fill="#000" opacity=".45"/><circle cx="${X(c)}" cy="${Y(r)}" r="2.5" fill="url(#${q}brass)"/>`);
-  P.push(`</g>`);
-  /* toque nas casas */
-  if (live) for (let r=0;r<N;r++) for (let c=0;c<N;c++) P.push(`<rect class="cellhit" data-cell="${r},${c}" x="${X(c)}" y="${Y(r)}" width="${CELL}" height="${CELL}" fill="transparent"/>`);
+  return P.join("");
+}
+function boardHits(){ // toque nas casas
+  const P=[]; for (let r=0;r<N;r++) for (let c=0;c<N;c++) P.push(`<rect class="cellhit" data-cell="${r},${c}" x="${X(c)}" y="${Y(r)}" width="${CELL}" height="${CELL}" fill="transparent"/>`);
+  return P.join("");
+}
+function boardPieces(g, q, live, anim){ // muros, peças e marcações da jogada
+  const mine=live && myTurn(), p=g.turn, L=anim?g.last:null, P=[];
   /* muros */
   const isNew=(k,r,c)=>L&&L.w&&L.w.k===k&&L.w.r===r&&L.w.c===c;
   P.push(`<g pointer-events="none">`);
@@ -409,7 +421,11 @@ function drawBoard(g, o={}){
     const fe=C.freeEdges(g,dest[0],dest[1]); s.r=fr; s.c=fc;
     fe.forEach(e=>{ P.push(wallSVG(e, p, q, `class="gwall" data-edge="${e.k},${e.r},${e.c}"`, .6)); P.push(hitEdge(e,`data-edge="${e.k},${e.r},${e.c}"`)); });
   }
-  return `<svg class="${o.cls||"board"}" viewBox="0 0 ${SIZE} ${SIZE}" ${o.id?`id="${o.id}"`:""} aria-label="Tabuleiro">${P.join("")}</svg>`;
+  return P.join("");
+}
+function drawBoard(g, o={}){ // tabuleiro inteiro num SVG só (tela inicial)
+  const q=o.q||"b", live=!!o.live;
+  return `<svg class="${o.cls||"board"}" viewBox="0 0 ${SIZE} ${SIZE}" ${o.id?`id="${o.id}"`:""} aria-label="Tabuleiro">${boardBase(q)}<g pointer-events="none">${boardTint(g)}${boardTop(q)}</g>${live?boardHits():""}${boardPieces(g,q,live,true)}</svg>`;
 }
 
 /* ---------------- tela do jogo ---------------- */
@@ -418,32 +434,42 @@ function hintText(){
   const p=G.turn, nm=NAMES[p];
   if (!myTurn()) return MODE==="ai" ? "O computador está pensando…" : MODE==="online" ? "Vez do seu amigo. Aguarde…" : `Vez de ${nm}. Aguarde…`;
   const who = MODE==="local" ? `${nm}: ` : "";
-  if (G.phase==="place"){ const run=G.placeOrder[G.placeIdx+1]===p?" (mais uma depois desta)":""; return `${who}toque numa casa vazia para colocar uma peça${run}`; }
+  if (G.phase==="place"){ const run=G.placeOrder[G.placeIdx+1]===p?" (e mais uma)":""; return `${who}coloque uma peça numa casa vazia${run}`; }
   if (breaking) return `${who}toque no muro que quer derrubar`;
   if (sel===null) return `${who}toque numa peça sua`;
-  if (!dest) return `${who}escolha onde parar (${C.maxSteps(G)===1?"1 casa":"até 2 casas"}) ou toque na própria peça para ficar`;
-  return `${who}agora levante um muro num dos lados da peça`;
+  if (!dest) return `${who}${C.maxSteps(G)===1?"ande 1 casa":"ande até 2 casas"} ou toque na peça para ficar`;
+  return `${who}levante um muro ao lado da peça`;
 }
+let animKey="";
 function game(){
   const t=C.territory(G), p=G.turn;
+  const key=[G.moves,G.placeIdx,JSON.stringify(G.last)].join("|"), anim=key!==animKey; animKey=key;   // anima só a jogada nova
+  if (!document.getElementById("board")){
+    app.innerHTML=`<div class="screen" style="padding-top:12px">
+      <div class="gtop" id="gtop"></div><div class="players" id="gpl"></div><div class="hint" id="ghint"></div>
+      <div class="boardwrap"><svg class="board base" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">${boardBase("g")}</svg>
+        <svg class="board layer" id="board" viewBox="0 0 ${SIZE} ${SIZE}" aria-label="Tabuleiro"><g id="gtint" pointer-events="none"></g><g pointer-events="none">${boardTop("g")}</g>${boardHits()}<g id="gdyn"></g></svg></div>
+      <div id="gbot"></div></div>`;
+    document.getElementById("board").addEventListener("click", onBoard);
+  }
+  const set=(id,h)=>{ const el=document.getElementById(id); if (el._h!==h){ el.innerHTML=h; el._h=h; } };
   const pc=q=>`<div class="pc ${!G.over&&G.turn===q?"on":""}">${miniPiece(q)}<div><b>${esc(NAMES[q])}</b><small>Área: ${t[q]}</small></div>${isSimples(G)?"":`<span class="hm ${G.breaker[q]?"":"used"}" title="Derrubador">${ico("hammer",18)}</span>`}</div>`;
   const canBreak = myTurn() && G.phase==="play" && G.breaker[p] && !dest && C.breakable(G,p).length>0;
-  app.innerHTML=`<div class="screen" style="padding-top:12px">
-    <div class="gtop"><button class="icon" id="menu" aria-label="Menu">${ico("menu",20)}</button><div class="t">${MODE==="online"?"Online":MODE==="ai"?"Contra o computador":"Partida local"}${isSimples(G)?"<small>Simples</small>":""}</div>${MODE==="online"?`<span class="room">SALA ${esc(NET?NET.code:"")}</span>`:""}</div>
-    <div class="players">${pc(1)}${pc(2)}</div>
-    <div class="hint ${G.over?"":"t"+p}">${esc(hintText())}</div>
-    <div class="boardwrap">${drawBoard(G,{q:"g", id:"board", live:true})}</div>
-    ${G.note?`<div class="banner">${esc(G.note)}</div>`:""}
+  set("gtop", `<button class="icon" id="menu" aria-label="Menu">${ico("menu",20)}</button><div class="t">${MODE==="online"?"Online":MODE==="ai"?"Contra o computador":"Partida local"}${isSimples(G)?"<small>Simples</small>":""}</div>${MODE==="online"?`<span class="room">SALA ${esc(NET?NET.code:"")}</span>`:""}`);
+  set("gpl", pc(1)+pc(2));
+  const hint=document.getElementById("ghint"); hint.className="hint "+(G.over?"":"t"+p); hint.textContent=hintText();
+  set("gtint", boardTint(G));
+  set("gdyn", boardPieces(G,"g",true,anim));
+  set("gbot", `${G.note?`<div class="banner">${esc(G.note)}</div>`:""}
     ${NET && NET.lost ? `<div class="banner">Conexão perdida. Aguardando o amigo voltar…</div>`:""}
     <div class="actions">
       ${canBreak && !breaking ? `<button class="btn light" id="brk">${ico("hammer",18)} Derrubar muro</button>`:""}
       ${myTurn() && (sel!==null || breaking) ? `<button class="btn light" id="cancel">Cancelar</button>`:""}
       ${G.over ? `<button class="btn p1" id="res">Ver resultado</button>`:""}
-    </div></div>`;
+    </div>`);
   document.getElementById("menu").onclick=()=>{ if (MODE==="online" && !G.over && !confirmLeave()) return; home(); };
   const b=document.getElementById("brk"); if(b) b.onclick=()=>{ breaking=true; sel=dest=null; sfx.tap(); game(); };
   const c=document.getElementById("cancel"); if(c) c.onclick=()=>{ breaking=false; sel=dest=null; game(); };
-  document.getElementById("board").addEventListener("click", onBoard);
   const rs=document.getElementById("res"); if(rs) rs.onclick=()=>{ document.querySelectorAll(".over").forEach(x=>x.remove()); showEnd(); };
   if (G.over) showEnd();
 }

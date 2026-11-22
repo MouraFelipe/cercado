@@ -153,10 +153,12 @@ function control(g){
   let s1=0,s2=0; for (let i=0;i<N*N;i++){ if(dist[1][i]<dist[2][i]) s1++; else if(dist[2][i]<dist[1][i]) s2++; }
   return {1:s1,2:s2};
 }
+/* avaliação: casas que cada um alcança primeiro (as áreas já fechadas entram aqui sem bônus extra,
+   para o computador não se trancar num canto pequeno só para "garantir" pontos) */
 function evalFor(g,p){
   if (g.over) return g.winner===p?1000:(g.winner===0?0:-1000);
   const c=control(g), t=territory(g);
-  return (c[p]-c[other(p)]) + 0.5*(t[p]-t[other(p)]);
+  return (c[p]-c[other(p)]) + 0.1*(t[p]-t[other(p)]);
 }
 function allMoves(g){
   const out=[];
@@ -169,17 +171,32 @@ function allMoves(g){
   return out;
 }
 function aiMove(g, level="normal"){
-  const me=g.turn, moves=allMoves(g); if(!moves.length) return null;
-  const noise = level==="easy" ? 8 : 0.3;            // fácil: escolhe quase ao acaso entre boas e más jogadas
-  let best=null, bestV=-1e9;
-  for (const m of moves){
-    const g2=clone(g); if (apply(g2,m)) continue;
-    const v=evalFor(g2,me) + Math.random()*noise;
-    if (v>bestV){ bestV=v; best=m; }
+  const me=g.turn, opts=children(g,me); if(!opts.length) return null;
+  if (level==="easy"){   // fácil: olha só a própria jogada e escolhe quase ao acaso entre boas e más
+    let best=opts[0], bv=-1e9; for (const o of opts){ const v=o.v+Math.random()*8; if (v>bv){ bv=v; best=o; } } return best.m;
+  }
+  /* normal: olha 3 jogadas à frente (a dele, a melhor resposta do adversário e a resposta dele de novo).
+     Assim vê quando vai ser cercado e foge, em vez de se trancar num canto. */
+  opts.sort((a,b)=>b.v-a.v);
+  let best=opts[0].m, bestV=-1e9; const t0=Date.now();
+  for (const [i,o] of opts.slice(0,12).entries()){
+    if (i>=3 && Date.now()-t0>900) break;   // celular lento: responde rápido com as melhores já analisadas
+    const v=look(o.g2,me,2,6)+Math.random()*0.3;
+    if (v>bestV){ bestV=v; best=o.m; }
   }
   return best;
 }
+function children(g,me){ const out=[]; for (const m of allMoves(g)){ const g2=clone(g); if (apply(g2,m)) continue; out.push({m, g2, v:evalFor(g2,me)}); } return out; }
+function look(g,me,depth,width){   // valor da posição para "me", olhando "depth" jogadas, só as "width" mais promissoras
+  if (depth===0 || g.over) return evalFor(g,me);
+  const ks=children(g,me); if (!ks.length) return evalFor(g,me);
+  const mine=g.turn===me; ks.sort((a,b)=>mine?b.v-a.v:a.v-b.v);
+  if (depth===1) return ks[0].v;
+  let best=mine?-1e9:1e9;
+  for (const k of ks.slice(0,width)){ const v=look(k.g2,me,depth-1,width); if (mine?v>best:v<best) best=v; }
+  return best;
+}
 
-const API = {N, DIRS, maxSteps, newGame, clone, apply, reachable, destinations, freeEdges, edgeOf, wallAt, stoneAt, regions, territory, separated, breakable, hasMove, aiMove, other};
+const API = {N, DIRS, maxSteps, control, evalFor, allMoves, newGame, clone, apply, reachable, destinations, freeEdges, edgeOf, wallAt, stoneAt, regions, territory, separated, breakable, hasMove, aiMove, other};
 if (typeof module!=="undefined") module.exports=API; else root.Cercado=API;
 })(this);

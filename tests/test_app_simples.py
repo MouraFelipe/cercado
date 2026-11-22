@@ -1,4 +1,4 @@
-"""App instalável (manifest, service worker, sem internet) e regras Simples (1 casa, sem derrubador),
+"""App instalável (manifest, service worker, sem internet), tela sem piscar e regras Simples (1 casa, sem derrubador),
 inclusive no online com PeerJS simulado. Uso: python tests/test_app_simples.py"""
 import os, subprocess, sys, time
 from playwright.sync_api import sync_playwright
@@ -26,7 +26,10 @@ try:
     ctx = b.new_context(viewport={"width": 390, "height": 844}); p = page(ctx)
     p.click('[data-r="simples"]'); assert "1 casa" in p.inner_text(".rulesel p")
     p.click("#local"); p.wait_for_selector("#board")
+    p.evaluate("window.__scr=document.querySelector('.screen'); window.__base=document.querySelector('svg.board.base')")
     place(p, [(0, 0), (6, 6), (6, 0), (0, 6)])
+    assert p.evaluate("window.__scr===document.querySelector('.screen') && window.__base===document.querySelector('svg.board.base')"), "a tela foi recriada"
+    print("sem piscar: tela e madeira continuam as mesmas depois das jogadas")
     assert p.evaluate("G.steps") == 1 and p.query_selector(".hm") is None and p.query_selector("#brk") is None
     p.click('[data-cell="1,1"]'); time.sleep(.2)
     far = p.evaluate("Math.max(...C.destinations(G,sel).map(([r,c])=>Math.abs(r-1)+Math.abs(c-1)))")

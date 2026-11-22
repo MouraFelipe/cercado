@@ -10,7 +10,7 @@ O mesmo jogo também roda publicado no Claude: https://claude.ai/artifact/NXcw7U
 
 ## Modos
 - **Online com um amigo:** sala por código ou link, cada um no seu celular.
-- **Contra o computador:** Fácil ou Normal.
+- **Contra o computador:** Fácil ou Normal. No Normal, ele olha 3 jogadas à frente (a dele, a resposta do adversário e a dele de novo), para fugir quando vai ser cercado em vez de se trancar.
 - **2 jogadores neste aparelho:** passam o celular a cada jogada.
 
 ## Regras: Clássico ou Simples
