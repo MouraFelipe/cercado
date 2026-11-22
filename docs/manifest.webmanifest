@@ -1,0 +1,17 @@
+{
+  "name": "Cercado — o jogo de cercar território",
+  "short_name": "Cercado",
+  "description": "Mova, levante muros e cerque o maior território.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#2E1D12",
+  "theme_color": "#2B1A0F",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

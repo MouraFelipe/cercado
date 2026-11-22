@@ -10,15 +10,18 @@ const N = 7;
 const DIRS = {up:[-1,0], down:[1,0], left:[0,-1], right:[0,1]};
 const other = p => p===1?2:1;
 
+/* regras: "classico" = anda até 2 casas e tem derrubador; "simples" = anda 1 casa, sem derrubador */
 function newGame(opts={}){
+  const simples = opts.rules==="simples";
   return {
+    rules: simples?"simples":"classico", steps: simples?1:2,
     v: 1, N,
     stones: [{p:1,r:1,c:1},{p:1,r:5,c:5},{p:2,r:1,c:5},{p:2,r:5,c:1}],   // peças que já começam no tabuleiro
     h: Array.from({length:N-1},()=>Array(N).fill(0)),
     vw: Array.from({length:N},()=>Array(N-1).fill(0)),
     first: opts.first||1, turn: opts.first||1, phase: "place",
     placeOrder: (opts.first===2)?[2,1,1,2]:[1,2,2,1], placeIdx: 0,
-    breaker: {1:true, 2:true}, over: false, winner: 0, result: null,
+    breaker: {1:!simples, 2:!simples}, over: false, winner: 0, result: null,
     last: null, moves: 0, note: ""
   };
 }
@@ -36,11 +39,12 @@ function setWall(g,e,val){ if (e.k==="h") g.h[e.r][e.c]=val; else g.vw[e.r][e.c]
 function open(g,r,c,dir){ const e=edgeOf(r,c,dir); return !!e && !wallAt(g,e); }
 function stoneAt(g,r,c){ return g.stones.findIndex(s=>s.r===r && s.c===c); }
 
-/* casas alcançáveis com até 2 passos (horizontal/vertical), sem atravessar muro nem peça */
+/* casas alcançáveis com até 2 passos (1 no modo simples), na horizontal/vertical, sem atravessar muro nem peça */
+const maxSteps = g => g.steps===1 ? 1 : 2;
 function reachable(g, si){
-  const s=g.stones[si], seen=new Map([[s.r+","+s.c,0]]), q=[[s.r,s.c,0]], out=[[s.r,s.c]];
+  const s=g.stones[si], seen=new Map([[s.r+","+s.c,0]]), q=[[s.r,s.c,0]], out=[[s.r,s.c]], max=maxSteps(g);
   while(q.length){
-    const [r,c,d]=q.shift(); if (d===2) continue;
+    const [r,c,d]=q.shift(); if (d>=max) continue;
     for (const dir in DIRS){
       if (!open(g,r,c,dir)) continue;
       const nr=r+DIRS[dir][0], nc=c+DIRS[dir][1], k=nr+","+nc;
@@ -176,6 +180,6 @@ function aiMove(g, level="normal"){
   return best;
 }
 
-const API = {N, DIRS, newGame, clone, apply, reachable, destinations, freeEdges, edgeOf, wallAt, stoneAt, regions, territory, separated, breakable, hasMove, aiMove, other};
+const API = {N, DIRS, maxSteps, newGame, clone, apply, reachable, destinations, freeEdges, edgeOf, wallAt, stoneAt, regions, territory, separated, breakable, hasMove, aiMove, other};
 if (typeof module!=="undefined") module.exports=API; else root.Cercado=API;
 })(this);

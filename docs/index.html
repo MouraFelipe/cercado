@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="theme-color" content="#2B1A0F">
 <title>Cercado — o jogo de cercar território</title>
+<meta name="description" content="Mova, levante muros e cerque o maior território. Online, contra o computador ou a dois no mesmo celular.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cercado">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -59,6 +67,14 @@
   .seg{display:flex;gap:8px;margin-top:8px}
   .seg button{flex:1;padding:11px;border-radius:10px;font-weight:800;background:linear-gradient(180deg,#F8EEDA,#E6D2AE);color:var(--ink);border:1px solid var(--edge);box-shadow:0 2px 0 var(--edge2)}
   .seg button.on{background:linear-gradient(180deg,#7E512C,#55321A);color:#F7E8C9;border-color:#2C180A;box-shadow:0 2px 0 #2A170A}
+  .rulesel{margin:0 0 16px;text-align:center}
+  .rulesel>b{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass)}
+  .rulesel .seg{max-width:300px;margin:6px auto 0}
+  .rulesel p{margin:8px 0 0;font-size:13px;font-weight:600}
+  .gtop .t small{font-family:Inter,sans-serif;font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--brass);margin-left:8px;vertical-align:middle;text-transform:uppercase}
+  .steps{border-radius:14px;padding:4px 16px 6px;margin:12px 0}
+  .steps h3{font-family:var(--serif);font-size:24px;margin:10px 0 2px}
+  .steps ol{padding-left:20px;margin:6px 0 10px}.steps li{margin:6px 0;line-height:1.45}
   .back{font-weight:700;color:var(--on2);padding:6px 0;margin-bottom:6px}
   .rules .plaque{border-radius:14px;padding:6px 16px 8px;margin:12px 0}
   .rules ol{padding-left:20px;margin:8px 0} .rules li{margin:9px 0;line-height:1.45}
@@ -139,6 +155,7 @@ function toast(m){ const t=document.createElement("div"); t.className="toast"; t
 /* ícones (traço simples) */
 const ICONS={
   play:'<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>',
+  down:'<path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14"/>',
   globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.9 3 2.9 14 0 17M12 3.5c-2.9 3-2.9 14 0 17"/>',
   cpu:'<rect x="5.5" y="7.5" width="13" height="11" rx="2.5"/><path d="M12 7.5V4.5M10 15.5h4"/><circle cx="9.5" cy="12" r="1.1" fill="currentColor"/><circle cx="14.5" cy="12" r="1.1" fill="currentColor"/>',
   people:'<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.5" cy="9.5" r="2.4"/><path d="M15.6 14.1c2.4-.2 4.3 1.4 4.9 4.4"/>',
@@ -185,13 +202,16 @@ function confetti(){ const cs=[COL[1].c,COL[2].c,"#D2A84F","#F1E2C4"]; for(let i
 /* ---------------- estado da partida ---------------- */
 let G=null, MODE=null, LEVEL="normal", ME=null, NAMES={1:COL[1].name,2:COL[2].name};
 let sel=null, dest=null, breaking=false, aiTimer=null;
-const SAVE="cercado-save";
+const SAVE="cercado-save", RULES_KEY="cercado-regras";
+let RULES=(()=>{ try{ return localStorage.getItem(RULES_KEY)==="simples"?"simples":"classico"; }catch(e){ return "classico"; } })();
+const RULE_INFO={classico:"Anda até 2 casas e tem derrubador", simples:"Anda só 1 casa e não tem derrubador"};
+const isSimples = g => !!g && g.rules==="simples";
 function save(){ if(MODE==="online") return; try{ if(G && !G.over) localStorage.setItem(SAVE, JSON.stringify({G,MODE,LEVEL,NAMES})); else localStorage.removeItem(SAVE); }catch(e){} }
 function loadSave(){ try{ return JSON.parse(localStorage.getItem(SAVE)||"null"); }catch(e){ return null; } }
 const myTurn = ()=> G && !G.over && (MODE==="local" || (MODE==="ai" && G.turn===1) || (MODE==="online" && G.turn===ME));
 
 function startGame(mode, opts={}){
-  MODE=mode; G=C.newGame({first:opts.first||1}); sel=dest=null; breaking=false;
+  MODE=mode; G=C.newGame({first:opts.first||1, rules:opts.rules||RULES}); sel=dest=null; breaking=false;
   if (mode==="local") NAMES={1:COL[1].name,2:COL[2].name};
   if (mode==="ai") NAMES={1:"Você",2:"Computador"};
   save(); game(); maybeAI();
@@ -205,16 +225,20 @@ function home(){
   app.innerHTML=`<div class="screen">
     <div class="hero"><div class="kick">Estratégia para 2 jogadores</div><h1>Cercado</h1><p>Mova, levante muros e cerque o maior território.</p></div>
     ${heroBoard()}
+    <div class="rulesel"><b>Regras</b><div class="seg"><button data-r="classico" class="${RULES==="classico"?"on":""}">Clássico</button><button data-r="simples" class="${RULES==="simples"?"on":""}">Simples</button></div>
+      <p class="muted">${RULE_INFO[RULES]}</p></div>
     <div class="stack">
-      ${sv && sv.G && !sv.G.over ? opt("cont","play","Continuar partida", sv.MODE==="ai"?"Contra o computador":"2 jogadores neste aparelho"):""}
+      ${sv && sv.G && !sv.G.over ? opt("cont","play","Continuar partida", (sv.MODE==="ai"?"Contra o computador":"2 jogadores neste aparelho")+(isSimples(sv.G)?" · Simples":"")):""}
       ${opt("online","globe","Online com um amigo","Cada um no seu celular, com código de sala")}
       ${opt("ai","cpu","Contra o computador","Treine sozinho")}
       ${opt("local","people","2 jogadores neste aparelho","Passem o celular a cada jogada")}
       ${opt("how","book","Como jogar","Regras em 1 minuto")}
+      ${IS_APP?"":opt("inst","down","Baixar o app","Ícone na tela inicial, abre como app")}
     </div></div>`;
   const on=(id,f)=>{ const b=document.getElementById(id); if(b) b.onclick=()=>{ sfx.tap(); f(); }; };
   on("cont",()=>{ G=sv.G; MODE=sv.MODE; LEVEL=sv.LEVEL||"normal"; NAMES=sv.MODE==="local"?{1:COL[1].name,2:COL[2].name}:sv.NAMES; sel=dest=null; game(); maybeAI(); });
-  on("online",onlineMenu); on("ai",aiMenu); on("local",()=>startGame("local")); on("how",howTo);
+  app.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{ RULES=b.dataset.r; try{ localStorage.setItem(RULES_KEY,RULES); }catch(e){} sfx.tap(); home(); });
+  on("online",onlineMenu); on("ai",aiMenu); on("local",()=>startGame("local")); on("how",howTo); on("inst",installApp);
 }
 function heroBoard(){ // tabuleiro de exemplo na tela inicial
   const g=C.newGame(); g.phase="play";
@@ -235,13 +259,36 @@ function howTo(){
       <li><b>Fim:</b> quando nenhuma área tem peças dos dois jogadores juntas, o jogo acaba. Cada área fechada só com peças suas vale 1 ponto por casa.</li>
       <li><b>Empate:</b> vence quem tiver a maior área única.</li>
     </ol></div>
+    <div class="box"><b>Regras Simples:</b> escolha no menu inicial. A peça anda <b>só 1 casa</b> por vez e <b>não tem derrubador</b>. O resto é igual.</div>
     <div class="box"><b>Dica:</b> feche áreas grandes para você e use muros para deixar o adversário preso em espaços pequenos.</div>
     <button class="btn" id="go">Entendi!</button></div>`;
   document.getElementById("bk").onclick=home; document.getElementById("go").onclick=home;
 }
+/* ---------------- app no celular (site instalável) ---------------- */
+const IS_APP=(()=>{ try{ return matchMedia("(display-mode: standalone)").matches || navigator.standalone===true; }catch(e){ return false; } })();
+const IS_IOS=/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+const CAN_SW=/(^|\.)github\.io$/i.test(location.hostname) || location.hostname==="localhost";
+let installEvt=null;
+window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); installEvt=e; });
+window.addEventListener("appinstalled", ()=>{ installEvt=null; toast("Pronto! O Cercado está na tela inicial"); });
+if (CAN_SW && "serviceWorker" in navigator){ try{ navigator.serviceWorker.register("sw.js").catch(()=>{}); }catch(e){} }
+async function installApp(){
+  if (installEvt){ const e=installEvt; installEvt=null; try{ e.prompt(); await e.userChoice; }catch(err){} return; }
+  const site=CAN_SW;
+  app.innerHTML=`<div class="screen rules"><button class="back" id="bk">← Voltar</button><h1 class="title">Baixar o app</h1>
+    <p class="muted" style="font-weight:600;margin:0 0 6px">O Cercado vira um ícone na tela inicial: abre em tela cheia, como um app, e joga contra o computador ou a dois mesmo sem internet.</p>
+    ${site?"":`<div class="box"><b>Primeiro, abra o site.</b> Aqui pelo Claude não dá para instalar.<a class="btn p1" href="${SITE_URL}" target="_blank" rel="noopener" style="margin-top:10px">Abrir o site do Cercado</a></div>`}
+    <div class="plaque steps">
+      <h3>Android</h3><ol><li>Abra o site no <b>Chrome</b>.</li><li>Toque no menu <b>⋮</b>.</li><li>Toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</li></ol>
+      <h3>iPhone</h3><ol><li>Abra o site no <b>Safari</b>.</li><li>Toque em <b>Compartilhar</b> (quadrado com seta).</li><li>Toque em <b>Adicionar à Tela de Início</b>.</li></ol>
+    </div>
+    <div class="box"><b>Online:</b> para jogar com um amigo em outro celular, os dois precisam de internet.</div>
+    <button class="btn" id="go">Voltar ao menu</button></div>`;
+  document.getElementById("bk").onclick=home; document.getElementById("go").onclick=home;
+}
 function aiMenu(){
   app.innerHTML=`<div class="screen"><button class="back" id="bk">← Voltar</button><h1 class="title">Contra o computador</h1>
-    <p class="muted" style="font-weight:600;margin:0 0 16px">Você joga com as peças <b style="color:#E6967A">${COL[1].pl}</b> e começa.</p>
+    <p class="muted" style="font-weight:600;margin:0 0 16px">Você joga com as peças <b style="color:#E6967A">${COL[1].pl}</b> e começa. Regras: <b>${RULES==="simples"?"Simples":"Clássico"}</b>.</p>
     <b>Nível</b><div class="seg"><button data-l="easy" class="${LEVEL==="easy"?"on":""}">Fácil</button><button data-l="normal" class="${LEVEL==="normal"?"on":""}">Normal</button></div>
     <button class="btn p1" id="go" style="margin-top:20px">Começar</button></div>`;
   document.getElementById("bk").onclick=home;
@@ -374,15 +421,15 @@ function hintText(){
   if (G.phase==="place"){ const run=G.placeOrder[G.placeIdx+1]===p?" (mais uma depois desta)":""; return `${who}toque numa casa vazia para colocar uma peça${run}`; }
   if (breaking) return `${who}toque no muro que quer derrubar`;
   if (sel===null) return `${who}toque numa peça sua`;
-  if (!dest) return `${who}escolha onde parar (até 2 casas) ou toque na própria peça para ficar`;
+  if (!dest) return `${who}escolha onde parar (${C.maxSteps(G)===1?"1 casa":"até 2 casas"}) ou toque na própria peça para ficar`;
   return `${who}agora levante um muro num dos lados da peça`;
 }
 function game(){
   const t=C.territory(G), p=G.turn;
-  const pc=q=>`<div class="pc ${!G.over&&G.turn===q?"on":""}">${miniPiece(q)}<div><b>${esc(NAMES[q])}</b><small>Área: ${t[q]}</small></div><span class="hm ${G.breaker[q]?"":"used"}" title="Derrubador">${ico("hammer",18)}</span></div>`;
+  const pc=q=>`<div class="pc ${!G.over&&G.turn===q?"on":""}">${miniPiece(q)}<div><b>${esc(NAMES[q])}</b><small>Área: ${t[q]}</small></div>${isSimples(G)?"":`<span class="hm ${G.breaker[q]?"":"used"}" title="Derrubador">${ico("hammer",18)}</span>`}</div>`;
   const canBreak = myTurn() && G.phase==="play" && G.breaker[p] && !dest && C.breakable(G,p).length>0;
   app.innerHTML=`<div class="screen" style="padding-top:12px">
-    <div class="gtop"><button class="icon" id="menu" aria-label="Menu">${ico("menu",20)}</button><div class="t">${MODE==="online"?"Online":MODE==="ai"?"Contra o computador":"Partida local"}</div>${MODE==="online"?`<span class="room">SALA ${esc(NET?NET.code:"")}</span>`:""}</div>
+    <div class="gtop"><button class="icon" id="menu" aria-label="Menu">${ico("menu",20)}</button><div class="t">${MODE==="online"?"Online":MODE==="ai"?"Contra o computador":"Partida local"}${isSimples(G)?"<small>Simples</small>":""}</div>${MODE==="online"?`<span class="room">SALA ${esc(NET?NET.code:"")}</span>`:""}</div>
     <div class="players">${pc(1)}${pc(2)}</div>
     <div class="hint ${G.over?"":"t"+p}">${esc(hintText())}</div>
     <div class="boardwrap">${drawBoard(G,{q:"g", id:"board", live:true})}</div>
@@ -453,8 +500,8 @@ function showEnd(){
   d.querySelector("#view").onclick=()=>{ close(); };
   d.querySelector("#home").onclick=()=>{ close(); home(); };
   d.querySelector("#again").onclick=()=>{ close(); const first=C.other(G.first||1);
-    if (MODE==="online"){ G=C.newGame({first}); sel=dest=null; netSend(); game(); }
-    else startGame(MODE,{first: MODE==="ai"?1:first}); };
+    if (MODE==="online"){ G=C.newGame({first, rules:G.rules}); sel=dest=null; netSend(); game(); }
+    else startGame(MODE,{first: MODE==="ai"?1:first, rules:G.rules}); };
   save();
 }
 
@@ -536,7 +583,7 @@ function validG(g){
     && g.stones.every(s=>s && pl(s.p) && ok(s.r) && ok(s.c))
     && Array.isArray(g.h) && g.h.length===N-1 && g.h.every(r=>Array.isArray(r)&&r.length===N)
     && Array.isArray(g.vw) && g.vw.length===N && g.vw.every(r=>Array.isArray(r)&&r.length===N-1)
-    && pl(g.turn) && [0,1,2].includes(g.winner) && Array.isArray(g.placeOrder) && g.breaker && typeof g.breaker==="object";
+    && pl(g.turn) && [0,1,2].includes(g.winner) && Array.isArray(g.placeOrder) && g.breaker && typeof g.breaker==="object" && (g.steps===undefined || g.steps===1 || g.steps===2);
 }
 function publish(bump){
   if (!NET || !NET.T) return;
@@ -565,7 +612,7 @@ function offline(){
 
 function onlineMenu(){
   app.innerHTML=`<div class="screen"><button class="back" id="bk">← Voltar</button><h1 class="title">Online com um amigo</h1>
-    <p class="muted" style="font-weight:600;margin:0 0 18px">Cada um joga no seu celular. Um cria a sala e manda o código ou o link para o outro.</p>
+    <p class="muted" style="font-weight:600;margin:0 0 18px">Cada um joga no seu celular. Um cria a sala e manda o código ou o link para o outro. Quem cria a sala escolhe as regras: agora <b>${RULES==="simples"?"Simples":"Clássico"}</b>.</p>
     <button class="btn p1" id="create">Criar sala</button>
     <p style="text-align:center;font-weight:700;color:var(--on2);margin:20px 0 10px">ou entre numa sala</p>
     <input class="inp" id="code" maxlength="5" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters">
@@ -588,7 +635,7 @@ function lobby(){
       <a class="btn light" href="https://wa.me/?text=${encodeURIComponent("Bora jogar Cercado? Entra na minha sala: "+link)}" target="_blank" rel="noopener">Enviar pelo WhatsApp</a>
     </div>
     <div class="wait">Aguardando o amigo entrar <span class="dot3"><i></i><i></i><i></i></span></div>
-    <p class="muted" style="font-size:13px;text-align:center;font-weight:600">Deixe esta tela aberta. Você joga com as peças <b style="color:#E6967A">${COL[1].pl}</b>.${ON_SITE?"":"<br>Pelo Claude, seu amigo precisa abrir o link logado e ter acesso a este jogo."}</p>`);
+    <p class="muted" style="font-size:13px;text-align:center;font-weight:600">Deixe esta tela aberta. Você joga com as peças <b style="color:#E6967A">${COL[1].pl}</b>. Regras: <b>${RULES==="simples"?"Simples":"Clássico"}</b>.${ON_SITE?"":"<br>Pelo Claude, seu amigo precisa abrir o link logado e ter acesso a este jogo."}</p>`);
   document.getElementById("share").onclick=async()=>{
     if (ON_SITE && navigator.share){ try{ await navigator.share({title:"Cercado", text:"Entra na minha sala do Cercado:", url:link}); return; }catch(e){ if (e && e.name==="AbortError") return; } }
     try{ await navigator.clipboard.writeText(link); toast("Link copiado!"); }
@@ -645,7 +692,7 @@ function onPeers(ch){
       const cand=others.find(p=>p.presence.role==="guest");
       if (cand){
         const had=!!NET.mate; NET.mate=cand.peer; NET.lost=false;
-        if (!(MODE==="online" && G && !G.over)){ MODE="online"; ME=1; G=C.newGame(); sel=dest=null; breaking=false; }
+        if (!(MODE==="online" && G && !G.over)){ MODE="online"; ME=1; G=C.newGame({rules:RULES}); sel=dest=null; breaking=false; }
         NAMES={1:"Você",2:"Amigo"};
         publish(true); sfx.place(); toast(had?"Seu amigo voltou!":"Seu amigo entrou!"); game(); return;
       }
