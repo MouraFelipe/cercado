@@ -101,7 +101,7 @@
   .pc b{display:block;font-size:15px;line-height:1.1}.pc small{font-size:12px;color:var(--muted);font-weight:700}
   .pc.on{box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 0 0 2px var(--brass),0 0 18px rgba(240,190,90,.5),0 8px 16px rgba(0,0,0,.35);transform:translateY(-1px)}
   .pc .hm{margin-left:auto;color:#6B4423;display:grid}.pc .hm.used{opacity:.22}
-  .hint{margin:12px 0 12px;text-align:center;font-weight:700;font-size:15px;min-height:44px;display:flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:12px;border-left-width:6px}
+  .hint{margin:12px 0 12px;text-align:center;font-weight:700;font-size:15px;line-height:1.3;height:54px;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:12px;border-left-width:6px}
   .hint.t1{border-left-color:var(--p1)} .hint.t2{border-left-color:var(--p2)}
   .boardwrap{position:relative;width:100%;max-width:470px;margin:0 auto}
   svg.board{width:100%;height:auto;display:block;touch-action:manipulation;user-select:none;-webkit-user-select:none}
@@ -434,11 +434,11 @@ function hintText(){
   const p=G.turn, nm=NAMES[p];
   if (!myTurn()) return MODE==="ai" ? "O computador está pensando…" : MODE==="online" ? "Vez do seu amigo. Aguarde…" : `Vez de ${nm}. Aguarde…`;
   const who = MODE==="local" ? `${nm}: ` : "";
-  if (G.phase==="place"){ const run=G.placeOrder[G.placeIdx+1]===p?" (mais uma depois desta)":""; return `${who}toque numa casa vazia para colocar uma peça${run}`; }
+  if (G.phase==="place"){ const run=G.placeOrder[G.placeIdx+1]===p?" (e mais uma)":""; return `${who}coloque uma peça numa casa vazia${run}`; }
   if (breaking) return `${who}toque no muro que quer derrubar`;
   if (sel===null) return `${who}toque numa peça sua`;
-  if (!dest) return `${who}escolha onde parar (${C.maxSteps(G)===1?"1 casa":"até 2 casas"}) ou toque na própria peça para ficar`;
-  return `${who}agora levante um muro num dos lados da peça`;
+  if (!dest) return `${who}${C.maxSteps(G)===1?"ande 1 casa":"ande até 2 casas"} ou toque na peça para ficar`;
+  return `${who}levante um muro ao lado da peça`;
 }
 let animKey="";
 function game(){
