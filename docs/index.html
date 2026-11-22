@@ -1,17 +1,697 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#F5F1EA">
-  <title>Cercado — o jogo de cercar território</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="./assets/index-B4230ax0.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BQzzfljo.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#2B1A0F">
+<title>Cercado — o jogo de cercar território</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2A1B10; --muted:#7B624A; --paper:#F5E9D2; --paper2:#E8D5B2; --edge:#B8946A; --edge2:#8C6A42;
+    --on:#F1E2C4; --on2:#CDB491; --brass:#D2A84F; --brassd:#8E6A26;
+    --p1:#A8361E; --p1d:#5C170B; --p2:#2F2723; --p2d:#0E0A08;
+    --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%}
+  body{background:#2E1D12;color:var(--on);font-family:Inter,system-ui,sans-serif;display:flex;justify-content:center;background-attachment:fixed}
+  #app{width:100%;max-width:540px;min-height:100vh;position:relative}
+  button{font-family:inherit;cursor:pointer;border:none;color:inherit;background:none}
+  h1,h2,.disp{font-family:var(--serif);line-height:1.05;font-weight:700}
+  .screen{animation:in .3s ease;padding:18px 16px 32px}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .title{font-size:38px;margin:0 0 6px;color:var(--on);text-shadow:0 2px 0 rgba(0,0,0,.55)}
+
+  /* placas de papel/madeira */
+  .plaque,.opt,.pc,.hint,.box,.linkbox,.banner,.sheet,.score div{
+    background:linear-gradient(180deg,#F8EEDA 0%,#EDDDBE 100%);color:var(--ink);
+    border:1px solid var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 2px 0 var(--edge2),0 8px 16px rgba(0,0,0,.35)}
+  .muted{color:var(--on2)}
+  .plaque .muted,.sheet .muted,.box .muted{color:var(--muted)}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:12px;font-size:16px;font-weight:800;letter-spacing:.02em;
+    color:#F7E8C9;text-shadow:0 1px 0 rgba(0,0,0,.45);background:linear-gradient(180deg,#7E512C,#55321A);border:1px solid #2C180A;
+    box-shadow:inset 0 1px 0 rgba(255,215,160,.35),0 3px 0 #2A170A,0 8px 14px rgba(0,0,0,.35);text-align:center;text-decoration:none}
+  .btn:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,215,160,.3),0 1px 0 #2A170A,0 4px 8px rgba(0,0,0,.3)}
+  .btn.p1{background:linear-gradient(180deg,#BC4A2C,#7F250F);border-color:#3E0F05;box-shadow:inset 0 1px 0 rgba(255,190,160,.4),0 3px 0 #451105,0 8px 14px rgba(0,0,0,.35)}
+  .btn.p2{background:linear-gradient(180deg,#4C403A,#211A16);border-color:#0A0706;box-shadow:inset 0 1px 0 rgba(255,235,215,.22),0 3px 0 #0B0806,0 8px 14px rgba(0,0,0,.35)}
+  .btn.light{background:linear-gradient(180deg,#F8EEDA,#E6D2AE);color:var(--ink);text-shadow:none;border-color:var(--edge);box-shadow:inset 0 1px 0 #fff,0 3px 0 var(--edge2),0 8px 14px rgba(0,0,0,.3)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn svg{flex:none}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:linear-gradient(180deg,#5A3820,#3A2312);color:#F5E6C8;border:1px solid #1E1007;
+    padding:10px 16px;border-radius:10px;font-weight:700;z-index:60;animation:in .25s;max-width:90vw;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.45)}
+
+  /* menu */
+  .hero{text-align:center;padding:14px 0 4px}
+  .hero .kick{font-size:11px;font-weight:800;letter-spacing:.28em;color:var(--brass);text-transform:uppercase}
+  .hero h1{font-size:64px;margin:2px 0 0;letter-spacing:.5px;color:#F0DBAE;text-shadow:0 -1px 0 rgba(0,0,0,.6),0 2px 0 rgba(0,0,0,.5),0 0 24px rgba(255,190,110,.18)}
+  .hero p{margin:4px 0 0;font-weight:600;color:var(--on2)}
+  .mini{width:236px;margin:16px auto 20px;display:block;filter:drop-shadow(0 14px 18px rgba(0,0,0,.55))}
+  .opt{display:flex;align-items:center;gap:14px;border-radius:14px;padding:12px 14px;text-align:left;width:100%}
+  .opt:active{transform:translateY(2px)}
+  .medal{width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;color:#3A2410;
+    background:radial-gradient(circle at 35% 30%,#F8E4A6,#C99A3E 55%,#7A561C);box-shadow:inset 0 -2px 3px rgba(0,0,0,.25),inset 0 1px 1px rgba(255,255,255,.6),0 2px 3px rgba(0,0,0,.3)}
+  .opt b{display:block;font-size:16px}.opt span.s{font-size:13px;color:var(--muted);font-weight:600}
+  .seg{display:flex;gap:8px;margin-top:8px}
+  .seg button{flex:1;padding:11px;border-radius:10px;font-weight:800;background:linear-gradient(180deg,#F8EEDA,#E6D2AE);color:var(--ink);border:1px solid var(--edge);box-shadow:0 2px 0 var(--edge2)}
+  .seg button.on{background:linear-gradient(180deg,#7E512C,#55321A);color:#F7E8C9;border-color:#2C180A;box-shadow:0 2px 0 #2A170A}
+  .back{font-weight:700;color:var(--on2);padding:6px 0;margin-bottom:6px}
+  .rules .plaque{border-radius:14px;padding:6px 16px 8px;margin:12px 0}
+  .rules ol{padding-left:20px;margin:8px 0} .rules li{margin:9px 0;line-height:1.45}
+  .rules .box{border-radius:12px;padding:12px 14px;margin:12px 0}
+  .code{font-family:Inter,sans-serif;font-weight:800;font-size:44px;letter-spacing:10px;text-align:center;color:#3A2410;border-radius:12px;padding:12px 0 10px 10px;margin:10px 0;
+    background:linear-gradient(180deg,#F3D98F,#C99A3E 60%,#A97D2C);border:1px solid #6E4D16;text-shadow:0 1px 0 rgba(255,240,190,.6);box-shadow:inset 0 1px 0 rgba(255,250,220,.7),0 3px 0 #5E4113,0 10px 18px rgba(0,0,0,.4)}
+  .inp{width:100%;font-family:Inter,sans-serif;font-weight:800;font-size:30px;letter-spacing:8px;text-align:center;text-transform:uppercase;padding:12px;border-radius:12px;color:var(--ink);
+    background:#FBF4E4;border:1px solid var(--edge);box-shadow:inset 0 2px 4px rgba(90,55,20,.25)}
+  .linkbox{font-size:13px;word-break:break-all;border-radius:10px;padding:8px 10px;color:var(--muted);font-weight:600}
+  .wait{display:flex;align-items:center;gap:10px;justify-content:center;font-weight:700;color:var(--on2);margin:14px 0}
+  .dot3 i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--brass);margin:0 2px;animation:blink 1.2s infinite}
+  .dot3 i:nth-child(2){animation-delay:.2s}.dot3 i:nth-child(3){animation-delay:.4s}
+  @keyframes blink{50%{opacity:.2}}
+
+  /* jogo */
+  .gtop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .gtop .t{flex:1;font-family:var(--serif);font-size:28px;font-weight:700;color:var(--on);text-shadow:0 2px 0 rgba(0,0,0,.5)}
+  .gtop .room{font-weight:800;color:var(--brass);font-size:14px;letter-spacing:.08em}
+  .icon{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;color:#F7E8C9;background:linear-gradient(180deg,#7E512C,#55321A);border:1px solid #2C180A;box-shadow:inset 0 1px 0 rgba(255,215,160,.35),0 2px 0 #2A170A}
+  .players{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pc{border-radius:12px;padding:8px 10px;display:flex;gap:8px;align-items:center;transition:box-shadow .25s,transform .25s}
+  svg.st{width:30px;height:30px;flex:none}
+  .score svg.st{width:40px;height:40px;margin-bottom:4px}
+  .pc b{display:block;font-size:15px;line-height:1.1}.pc small{font-size:12px;color:var(--muted);font-weight:700}
+  .pc.on{box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 0 0 2px var(--brass),0 0 18px rgba(240,190,90,.5),0 8px 16px rgba(0,0,0,.35);transform:translateY(-1px)}
+  .pc .hm{margin-left:auto;color:#6B4423;display:grid}.pc .hm.used{opacity:.22}
+  .hint{margin:12px 0 12px;text-align:center;font-weight:700;font-size:15px;min-height:44px;display:flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:12px;border-left-width:6px}
+  .hint.t1{border-left-color:var(--p1)} .hint.t2{border-left-color:var(--p2)}
+  .boardwrap{position:relative;width:100%;max-width:470px;margin:0 auto;filter:drop-shadow(0 16px 20px rgba(0,0,0,.55))}
+  svg.board{width:100%;height:auto;display:block;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  .cellhit{cursor:pointer}
+  .dest{animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.4}}
+  .gwall{animation:pulse 1s ease-in-out infinite;cursor:pointer}
+  .brk{animation:pulse .8s ease-in-out infinite;cursor:pointer}
+  .newwall{animation:drop .4s ease}
+  @keyframes drop{from{opacity:0;transform:translate(-2px,-6px)}to{opacity:1;transform:none}}
+  .moved{animation:pop .35s ease;transform-box:fill-box;transform-origin:center}
+  @keyframes pop{40%{transform:scale(1.12)}}
+  .actions{display:flex;gap:10px;margin-top:14px}
+  .actions .btn{padding:12px;font-size:15px}
+  .banner{border-radius:12px;padding:8px 12px;font-weight:700;font-size:14px;margin-top:12px;text-align:center;border-color:var(--brassd)}
+  /* fim */
+  .over{position:fixed;inset:0;background:rgba(20,11,5,.55);display:flex;align-items:flex-end;justify-content:center;z-index:40;animation:in .3s}
+  .sheet{width:100%;max-width:540px;border-radius:20px 20px 0 0;padding:22px 18px 24px;text-align:center;border-bottom:none;border-top:6px solid #6B4423}
+  .sheet h2{font-size:42px;margin:0}
+  .score{display:flex;justify-content:center;align-items:center;gap:14px;margin:12px 0}
+  .score div{border-radius:14px;padding:8px 18px;min-width:116px;display:flex;flex-direction:column;align-items:center}
+  .score b{display:block;font-family:var(--serif);font-size:46px;line-height:1}
+  .score span{font-weight:700;font-size:13px}
+  .confetti{position:fixed;top:-12px;width:9px;height:13px;z-index:50;pointer-events:none;animation:fall linear forwards;border-radius:2px}
+  @keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
+</style>
 </head>
 <body>
-  <div id="root"></div>
+<div id="app"></div>
+<script src="engine.js"></script>
+<script>
+/* =========================================================
+   CERCADO — interface (tema: madeira clássica)
+   ========================================================= */
+const C = Cercado, N = C.N;
+const app = document.getElementById("app");
+/* jogador 1 = madeira vermelha (cerejeira tingida), jogador 2 = madeira preta (ébano) */
+const COL = {
+  1:{c:"#A8361E", d:"#5C170B", l:"#DA7350", tint:"rgba(170,50,25,.30)", name:"Vermelho", pl:"vermelhas"},
+  2:{c:"#2F2723", d:"#0E0A08", l:"#76665B", tint:"rgba(22,15,10,.32)",  name:"Preto",    pl:"pretas"}
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(m){ const t=document.createElement("div"); t.className="toast"; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+
+/* mesa de madeira escura ao fundo (textura gerada, sem imagens) */
+(function table(){
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='640' height='640'><filter id='f'><feTurbulence type='fractalNoise' baseFrequency='0.0035 0.075' numOctaves='4' seed='11' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.09  0 0 0 0 0.05  0 0 0 0 0.025  1.9 0 0 0 -0.62'/></filter><rect width='100%' height='100%' fill='#4A2E1B'/><rect width='100%' height='100%' filter='url(#f)'/></svg>`;
+  document.body.style.backgroundImage=`radial-gradient(ellipse 90% 55% at 50% 18%, rgba(255,196,120,.20), rgba(255,196,120,0) 70%), radial-gradient(ellipse 120% 80% at 50% 110%, rgba(0,0,0,.55), rgba(0,0,0,0) 70%), url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+})();
+
+/* ícones (traço simples) */
+const ICONS={
+  play:'<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>',
+  globe:'<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.9 3 2.9 14 0 17M12 3.5c-2.9 3-2.9 14 0 17"/>',
+  cpu:'<rect x="5.5" y="7.5" width="13" height="11" rx="2.5"/><path d="M12 7.5V4.5M10 15.5h4"/><circle cx="9.5" cy="12" r="1.1" fill="currentColor"/><circle cx="14.5" cy="12" r="1.1" fill="currentColor"/>',
+  people:'<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.5" cy="9.5" r="2.4"/><path d="M15.6 14.1c2.4-.2 4.3 1.4 4.9 4.4"/>',
+  book:'<path d="M4 5.6c2.6-1 5.4-1 8 .5 2.6-1.5 5.4-1.5 8-.5V19c-2.6-1-5.4-1-8 .5-2.6-1.5-5.4-1.5-8-.5z"/><path d="M12 6.1v13.4"/>',
+  hammer:'<path d="M13.2 3.6l7.2 7.2-2.1 2.1-2.3-2.3-8.4 8.4a1.6 1.6 0 0 1-2.3-2.3l8.4-8.4-2.6-2.6z"/>',
+  menu:'<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>',
+  share:'<path d="M12 15V4M8 7.5L12 3.5l4 4"/><path d="M6 11v8h12v-8"/>'
+};
+const ico=(n,s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+function miniPiece(p){
+  return `<svg class="st" viewBox="0 0 30 30" aria-hidden="true"><defs><radialGradient id="mp${p}" cx="36%" cy="30%" r="75%"><stop offset="0" stop-color="${COL[p].l}"/><stop offset=".55" stop-color="${COL[p].c}"/><stop offset="1" stop-color="${COL[p].d}"/></radialGradient></defs>
+    <circle cx="16" cy="17" r="12" fill="#000" opacity=".25"/><circle cx="15" cy="15" r="12" fill="url(#mp${p})" stroke="${COL[p].d}" stroke-width="1"/>
+    <circle cx="15" cy="15" r="8.2" fill="none" stroke="${COL[p].d}" stroke-opacity=".45"/><ellipse cx="11" cy="10" rx="5" ry="2.6" fill="#fff" opacity=".3" transform="rotate(-28 11 10)"/></svg>`;
+}
+
+/* sons de madeira (sintetizados) */
+let actx, noiseBuf;
+function ac(){ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); return actx; }
+function noise(a){ if(!noiseBuf){ noiseBuf=a.createBuffer(1,Math.floor(a.sampleRate*.25),a.sampleRate); const d=noiseBuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; } return noiseBuf; }
+function knock(f=900, vol=.3, delay=0, decay=.08){
+  try{
+    const a=ac(), t=a.currentTime+delay;
+    const o=a.createOscillator(), g=a.createGain(); o.type="sine";
+    o.frequency.setValueAtTime(f*.55,t); o.frequency.exponentialRampToValueAtTime(f*.38,t+decay);
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+decay);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t+decay+.03);
+    const n=a.createBufferSource(); n.buffer=noise(a);
+    const bp=a.createBiquadFilter(); bp.type="bandpass"; bp.frequency.value=f*2; bp.Q.value=1.3;
+    const ng=a.createGain(); ng.gain.setValueAtTime(vol*.8,t); ng.gain.exponentialRampToValueAtTime(.0001,t+.035);
+    n.connect(bp).connect(ng).connect(a.destination); n.start(t); n.stop(t+.06);
+  }catch(e){}
+}
+function marimba(fs){ try{ const a=ac(); fs.forEach((f,i)=>{ const t=a.currentTime+i*.13; [[1,.16,.6],[3.9,.03,.12]].forEach(([m,v,d])=>{ const o=a.createOscillator(), g=a.createGain(); o.type="sine"; o.frequency.value=f*m; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(v,t+.006); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.connect(g).connect(a.destination); o.start(t); o.stop(t+d+.05); }); }); }catch(e){} }
+const sfx = {
+  tap:()=>knock(1500,.07,0,.03),
+  place:()=>knock(950,.32),
+  wall:()=>{ knock(640,.22); knock(860,.16,.07); },
+  brk:()=>{ knock(300,.34); knock(210,.26,.06); knock(520,.12,.13); },
+  win:()=>marimba([523,659,784,1046]),
+  bad:()=>knock(240,.12,0,.06)
+};
+function confetti(){ const cs=[COL[1].c,COL[2].c,"#D2A84F","#F1E2C4"]; for(let i=0;i<60;i++){ const d=document.createElement("div"); d.className="confetti"; d.style.left=Math.random()*100+"vw"; d.style.background=cs[i%4]; d.style.animationDuration=(1.6+Math.random()*1.6)+"s"; d.style.animationDelay=(Math.random()*.4)+"s"; document.body.appendChild(d); setTimeout(()=>d.remove(),3800);} }
+
+/* ---------------- estado da partida ---------------- */
+let G=null, MODE=null, LEVEL="normal", ME=null, NAMES={1:COL[1].name,2:COL[2].name};
+let sel=null, dest=null, breaking=false, aiTimer=null;
+const SAVE="cercado-save";
+function save(){ if(MODE==="online") return; try{ if(G && !G.over) localStorage.setItem(SAVE, JSON.stringify({G,MODE,LEVEL,NAMES})); else localStorage.removeItem(SAVE); }catch(e){} }
+function loadSave(){ try{ return JSON.parse(localStorage.getItem(SAVE)||"null"); }catch(e){ return null; } }
+const myTurn = ()=> G && !G.over && (MODE==="local" || (MODE==="ai" && G.turn===1) || (MODE==="online" && G.turn===ME));
+
+function startGame(mode, opts={}){
+  MODE=mode; G=C.newGame({first:opts.first||1}); sel=dest=null; breaking=false;
+  if (mode==="local") NAMES={1:COL[1].name,2:COL[2].name};
+  if (mode==="ai") NAMES={1:"Você",2:"Computador"};
+  save(); game(); maybeAI();
+}
+
+/* ---------------- telas ---------------- */
+function home(){
+  if (NET) netClose();
+  const sv=loadSave();
+  const opt=(id,icon,title,sub)=>`<button class="opt" id="${id}"><span class="medal">${ico(icon)}</span><div><b>${title}</b><span class="s">${sub}</span></div></button>`;
+  app.innerHTML=`<div class="screen">
+    <div class="hero"><div class="kick">Estratégia para 2 jogadores</div><h1>Cercado</h1><p>Mova, levante muros e cerque o maior território.</p></div>
+    ${heroBoard()}
+    <div class="stack">
+      ${sv && sv.G && !sv.G.over ? opt("cont","play","Continuar partida", sv.MODE==="ai"?"Contra o computador":"2 jogadores neste aparelho"):""}
+      ${opt("online","globe","Online com um amigo","Cada um no seu celular, com código de sala")}
+      ${opt("ai","cpu","Contra o computador","Treine sozinho")}
+      ${opt("local","people","2 jogadores neste aparelho","Passem o celular a cada jogada")}
+      ${opt("how","book","Como jogar","Regras em 1 minuto")}
+    </div></div>`;
+  const on=(id,f)=>{ const b=document.getElementById(id); if(b) b.onclick=()=>{ sfx.tap(); f(); }; };
+  on("cont",()=>{ G=sv.G; MODE=sv.MODE; LEVEL=sv.LEVEL||"normal"; NAMES=sv.MODE==="local"?{1:COL[1].name,2:COL[2].name}:sv.NAMES; sel=dest=null; game(); maybeAI(); });
+  on("online",onlineMenu); on("ai",aiMenu); on("local",()=>startGame("local")); on("how",howTo);
+}
+function heroBoard(){ // tabuleiro de exemplo na tela inicial
+  const g=C.newGame(); g.phase="play";
+  g.stones=[{p:1,r:0,c:1},{p:1,r:2,c:0},{p:2,r:5,c:5},{p:2,r:6,c:4},{p:1,r:3,c:3},{p:2,r:3,c:5}];
+  for (let c=0;c<3;c++) g.h[2][c]=1; for (let r=0;r<3;r++) g.vw[r][2]=1;
+  for (let c=4;c<7;c++) g.h[3][c]=2; for (let r=4;r<7;r++) g.vw[r][3]=2;
+  g.vw[3][2]=1; g.h[2][4]=2;
+  return drawBoard(g,{q:"h", cls:"mini"});
+}
+function howTo(){
+  app.innerHTML=`<div class="screen rules"><button class="back" id="bk">← Voltar</button><h1 class="title">Como jogar</h1>
+    <div class="box"><b>Objetivo:</b> no fim, ter mais casas cercadas só com peças suas.</div>
+    <div class="plaque"><ol>
+      <li><b>Começo:</b> cada jogador já tem 2 peças no tabuleiro e coloca mais 2 onde quiser (ordem: 1 · 2 · 2 · 1).</li>
+      <li><b>Na sua vez:</b> escolha uma peça sua e ande <b>até 2 casas</b> na horizontal ou vertical (pode fazer curva, ou ficar parado). Não dá para atravessar muros nem peças.</li>
+      <li><b>Depois de andar, levante um muro</b> em um dos lados livres da casa onde a peça parou. Muros não saem mais.</li>
+      <li><b>Derrubador:</b> uma vez por partida, antes de andar, você pode derrubar um muro que encosta em uma peça sua.</li>
+      <li><b>Fim:</b> quando nenhuma área tem peças dos dois jogadores juntas, o jogo acaba. Cada área fechada só com peças suas vale 1 ponto por casa.</li>
+      <li><b>Empate:</b> vence quem tiver a maior área única.</li>
+    </ol></div>
+    <div class="box"><b>Dica:</b> feche áreas grandes para você e use muros para deixar o adversário preso em espaços pequenos.</div>
+    <button class="btn" id="go">Entendi!</button></div>`;
+  document.getElementById("bk").onclick=home; document.getElementById("go").onclick=home;
+}
+function aiMenu(){
+  app.innerHTML=`<div class="screen"><button class="back" id="bk">← Voltar</button><h1 class="title">Contra o computador</h1>
+    <p class="muted" style="font-weight:600;margin:0 0 16px">Você joga com as peças <b style="color:#E6967A">${COL[1].pl}</b> e começa.</p>
+    <b>Nível</b><div class="seg"><button data-l="easy" class="${LEVEL==="easy"?"on":""}">Fácil</button><button data-l="normal" class="${LEVEL==="normal"?"on":""}">Normal</button></div>
+    <button class="btn p1" id="go" style="margin-top:20px">Começar</button></div>`;
+  document.getElementById("bk").onclick=home;
+  app.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{ LEVEL=b.dataset.l; aiMenu(); });
+  document.getElementById("go").onclick=()=>startGame("ai");
+}
+
+/* ---------------- tabuleiro de madeira (SVG) ---------------- */
+const CELL=56, PAD=24, SIZE=PAD*2+CELL*N, X=c=>PAD+c*CELL, Y=r=>PAD+r*CELL, TI=4, TS=CELL-TI*2;
+function hash(a,b,c){ let h=(a*374761393+b*668265263+c*2147483647)|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; }
+const grainFilter=(id,freq,seed,rgb,a,b)=>`<filter id="${id}"><feTurbulence type="fractalNoise" baseFrequency="${freq}" numOctaves="4" seed="${seed}"/><feColorMatrix values="0 0 0 0 ${rgb[0]}  0 0 0 0 ${rgb[1]}  0 0 0 0 ${rgb[2]}  ${a} 0 0 0 ${b}"/><feComposite in2="SourceAlpha" operator="in"/></filter>`;
+function boardDefs(q){
+  const tiles=[]; for (let r=0;r<N;r++) for (let c=0;c<N;c++) tiles.push(`<rect x="${X(c)+TI}" y="${Y(r)+TI}" width="${TS}" height="${TS}" rx="3"/>`);
+  const st=p=>`<stop offset="0" stop-color="${COL[p].l}"/><stop offset=".5" stop-color="${COL[p].c}"/><stop offset="1" stop-color="${COL[p].d}"/>`;
+  return `<defs>
+    <linearGradient id="${q}tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E6C28B"/><stop offset="1" stop-color="#CB9A5E"/></linearGradient>
+    <linearGradient id="${q}frame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7B4B27"/><stop offset=".5" stop-color="#5E3719"/><stop offset="1" stop-color="#42240E"/></linearGradient>
+    <linearGradient id="${q}groove" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3E220D"/><stop offset="1" stop-color="#583317"/></linearGradient>
+    <radialGradient id="${q}light" cx="32%" cy="22%" r="95%"><stop offset="0" stop-color="#FFF4D8" stop-opacity=".20"/><stop offset=".5" stop-color="#FFF4D8" stop-opacity="0"/><stop offset="1" stop-color="#1A0C03" stop-opacity=".28"/></radialGradient>
+    <radialGradient id="${q}brass" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#FFF0B8"/><stop offset=".45" stop-color="#C99A3E"/><stop offset="1" stop-color="#6E4D16"/></radialGradient>
+    ${[1,2].map(p=>`<radialGradient id="${q}pc${p}" cx="36%" cy="30%" r="75%">${st(p)}</radialGradient>
+      <linearGradient id="${q}wh${p}" x1="0" y1="0" x2="0" y2="1">${st(p)}</linearGradient>
+      <linearGradient id="${q}wv${p}" x1="0" y1="0" x2="1" y2="0">${st(p)}</linearGradient>`).join("")}
+    ${grainFilter(q+"gb","0.010 0.15",4,[.40,.22,.08],2.3,-0.95)}
+    ${grainFilter(q+"gf","0.008 0.12",9,[.13,.06,.02],2.2,-0.85)}
+    ${grainFilter(q+"gp1","0.045 0.42",7,[.25,.05,.02],2.0,-0.85)}
+    ${grainFilter(q+"gp2","0.045 0.42",5,[.62,.52,.44],1.5,-0.72)}
+    <clipPath id="${q}tiles">${tiles.join("")}</clipPath>
+  </defs>`;
+}
+function wallSVG(e, p, q, extra="", op=0){
+  const th=10, len=CELL-8, s=hash(e.k==="h"?1:2,e.r,e.c);
+  const H=e.k==="h", x=H?X(e.c)+4:X(e.c+1)-th/2, y=H?Y(e.r+1)-th/2:Y(e.r)+4, w=H?len:th, h=H?th:len;
+  const gl=p===1?`stroke="${COL[1].d}" stroke-opacity=".35"`:`stroke="#E8D5C0" stroke-opacity=".16"`;
+  const lines=[.32+.2*s,.62+.15*hash(e.c,e.r,7)].map((f,i)=> H
+    ? `<line x1="${x+3+i*6}" y1="${y+th*f}" x2="${x+w-3-(1-i)*8}" y2="${y+th*f}" ${gl} stroke-width=".7"/>`
+    : `<line x1="${x+th*f}" y1="${y+3+i*6}" x2="${x+th*f}" y2="${y+h-3-(1-i)*8}" ${gl} stroke-width=".7"/>`).join("");
+  const hl=H?`<line x1="${x+2}" y1="${y+1.3}" x2="${x+w-2}" y2="${y+1.3}"`:`<line x1="${x+1.3}" y1="${y+2}" x2="${x+1.3}" y2="${y+h-2}"`;
+  return `<g ${extra}${op?` opacity="${op}"`:""}>
+    <rect x="${x+3.5}" y="${y+5.5}" width="${w}" height="${h}" rx="3" fill="#000" opacity=".14"/>
+    <rect x="${x+2}" y="${y+3}" width="${w}" height="${h}" rx="2" fill="#000" opacity=".3"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="url(#${q}${H?"wh":"wv"}${p})" stroke="${COL[p].d}" stroke-width=".8"/>
+    ${lines}${hl} stroke="#FFF1DC" stroke-opacity=".45" stroke-width=".9"/></g>`;
+}
+function pieceSVG(cx, cy, p, q, extra=""){
+  const R=18;
+  return `<g ${extra} pointer-events="none">
+    <ellipse cx="${cx+3.5}" cy="${cy+6}" rx="${R}" ry="${R*.9}" fill="#000" opacity=".2"/>
+    <circle cx="${cx+1.5}" cy="${cy+2.5}" r="${R}" fill="#000" opacity=".32"/>
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#${q}pc${p})"/>
+    <circle cx="${cx}" cy="${cy}" r="${R}" fill="#000" filter="url(#${q}gp${p})"/>
+    <circle cx="${cx}" cy="${cy}" r="${R*.7}" fill="none" stroke="${COL[p].d}" stroke-opacity=".5" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${R*.7+1.1}" fill="none" stroke="#FFEBD2" stroke-opacity=".2" stroke-width="1"/>
+    <circle cx="${cx}" cy="${cy}" r="${R*.36}" fill="none" stroke="${COL[p].d}" stroke-opacity=".38" stroke-width="1"/>
+    <ellipse cx="${cx-R*.32}" cy="${cy-R*.42}" rx="${R*.44}" ry="${R*.22}" fill="#fff" opacity=".3" transform="rotate(-28 ${cx-R*.32} ${cy-R*.42})"/>
+    <circle cx="${cx}" cy="${cy}" r="${R-.6}" fill="none" stroke="${COL[p].d}" stroke-width="1.2" stroke-opacity=".75"/></g>`;
+}
+function hitEdge(e, attr){ // área de toque maior para acertar o muro no celular
+  if (e.k==="h") return `<rect ${attr} x="${X(e.c)}" y="${Y(e.r+1)-14}" width="${CELL}" height="28" fill="transparent" style="cursor:pointer"/>`;
+  return `<rect ${attr} x="${X(e.c+1)-14}" y="${Y(e.r)}" width="28" height="${CELL}" fill="transparent" style="cursor:pointer"/>`;
+}
+function drawBoard(g, o={}){
+  const q=o.q||"b", live=!!o.live, mine=live && myTurn(), p=g.turn, L=g.last;
+  const regs=C.regions(g), tint=Array.from({length:N},()=>Array(N).fill(0));
+  regs.forEach(reg=>{ if(reg.owners.size===1){ const w=[...reg.owners][0]; reg.cells.forEach(([r,c])=>tint[r][c]=w); } });
+  const P=[boardDefs(q)];
+  const f0=PAD-6, fs=CELL*N+12;
+  /* moldura e fundo dos sulcos */
+  P.push(`<g pointer-events="none">
+    <rect x="1" y="1" width="${SIZE-2}" height="${SIZE-2}" rx="18" fill="url(#${q}frame)"/>
+    <rect x="1" y="1" width="${SIZE-2}" height="${SIZE-2}" rx="18" fill="#000" filter="url(#${q}gf)"/>
+    <rect x="2.5" y="2.5" width="${SIZE-5}" height="${SIZE-5}" rx="16.5" fill="none" stroke="#FFD9A8" stroke-opacity=".32" stroke-width="1.5"/>
+    <rect x="${f0}" y="${f0}" width="${fs}" height="${fs}" rx="6" fill="url(#${q}groove)"/>
+    <path d="M${f0+1},${f0+fs} V${f0+1} H${f0+fs}" fill="none" stroke="#000" stroke-opacity=".55" stroke-width="2.5"/>
+    <path d="M${f0+fs-.5},${f0+3} V${f0+fs-.5} H${f0+3}" fill="none" stroke="#FFD7A0" stroke-opacity=".28" stroke-width="1.5"/>`);
+  /* casas em relevo com veios */
+  for (let r=0;r<N;r++) for (let c=0;c<N;c++) P.push(`<rect x="${X(c)+TI}" y="${Y(r)+TI}" width="${TS}" height="${TS}" rx="3" fill="url(#${q}tile)"/>`);
+  P.push(`<g clip-path="url(#${q}tiles)"><rect x="${PAD}" y="${PAD}" width="${CELL*N}" height="${CELL*N}" fill="#000" filter="url(#${q}gb)"/></g>`);
+  for (let r=0;r<N;r++) for (let c=0;c<N;c++){
+    const x=X(c)+TI, y=Y(r)+TI;
+    if (tint[r][c]) P.push(`<rect x="${x}" y="${y}" width="${TS}" height="${TS}" rx="3" fill="${COL[tint[r][c]].tint}"/>`);
+    P.push(`<path d="M${x+.8},${y+TS-1} V${y+.8} H${x+TS-1}" fill="none" stroke="#FFF0D2" stroke-opacity=".6" stroke-width="1.5"/>`);
+    P.push(`<path d="M${x+TS-.8},${y+1.5} V${y+TS-.8} H${x+1.5}" fill="none" stroke="#4A2509" stroke-opacity=".5" stroke-width="1.6"/>`);
+  }
+  P.push(`<rect x="0" y="0" width="${SIZE}" height="${SIZE}" rx="18" fill="url(#${q}light)"/>`);
+  /* pinos de latão nos cruzamentos */
+  for (let r=1;r<N;r++) for (let c=1;c<N;c++) P.push(`<circle cx="${X(c)+.7}" cy="${Y(r)+1}" r="2.7" fill="#000" opacity=".45"/><circle cx="${X(c)}" cy="${Y(r)}" r="2.5" fill="url(#${q}brass)"/>`);
+  P.push(`</g>`);
+  /* toque nas casas */
+  if (live) for (let r=0;r<N;r++) for (let c=0;c<N;c++) P.push(`<rect class="cellhit" data-cell="${r},${c}" x="${X(c)}" y="${Y(r)}" width="${CELL}" height="${CELL}" fill="transparent"/>`);
+  /* muros */
+  const isNew=(k,r,c)=>L&&L.w&&L.w.k===k&&L.w.r===r&&L.w.c===c;
+  P.push(`<g pointer-events="none">`);
+  for (let r=0;r<N-1;r++) for (let c=0;c<N;c++) if (g.h[r][c]) P.push(wallSVG({k:"h",r,c}, g.h[r][c], q, isNew("h",r,c)?'class="newwall"':""));
+  for (let r=0;r<N;r++) for (let c=0;c<N-1;c++) if (g.vw[r][c]) P.push(wallSVG({k:"v",r,c}, g.vw[r][c], q, isNew("v",r,c)?'class="newwall"':""));
+  P.push(`</g>`);
+  /* derrubador: muros que podem cair */
+  if (mine && breaking) C.breakable(g,p).forEach(e=>{
+    const H=e.k==="h", x=H?X(e.c)+1:X(e.c+1)-8, y=H?Y(e.r+1)-8:Y(e.r)+1, w=H?CELL-2:16, h=H?16:CELL-2;
+    P.push(`<rect class="brk" data-wall="${e.k},${e.r},${e.c}" x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="#F2C14E" fill-opacity=".25" stroke="#F2C14E" stroke-width="2.5"/>`);
+    P.push(hitEdge(e,`data-wall="${e.k},${e.r},${e.c}"`));
+  });
+  /* destinos possíveis */
+  if (mine && sel!==null && !dest) C.destinations(g,sel).forEach(([r,c])=>{ const cx=X(c)+CELL/2, cy=Y(r)+CELL/2;
+    P.push(`<g class="dest" pointer-events="none"><circle cx="${cx}" cy="${cy}" r="9" fill="#2A1404" opacity=".35"/><circle cx="${cx}" cy="${cy}" r="7" fill="${COL[p].c}" opacity=".75"/></g>`); });
+  /* peças */
+  g.stones.forEach((s,i)=>{
+    let r=s.r, c=s.c, ghost=false;
+    if (mine && dest && i===sel){ r=dest[0]; c=dest[1]; ghost=true; }
+    const cx=X(c)+CELL/2, cy=Y(r)+CELL/2, moved=L&&L.t==="move"&&L.s===i, placed=L&&L.t==="place"&&L.r===s.r&&L.c===s.c;
+    if (ghost && (s.r!==r || s.c!==c)) P.push(`<circle cx="${X(s.c)+CELL/2}" cy="${Y(s.r)+CELL/2}" r="17" fill="none" stroke="${COL[s.p].c}" stroke-width="2.5" stroke-dasharray="4 4" opacity=".7" pointer-events="none"/>`);
+    if (mine && i===sel) P.push(`<circle cx="${cx}" cy="${cy}" r="24" fill="none" stroke="#F0C766" stroke-opacity=".35" stroke-width="7" pointer-events="none"/><circle cx="${cx}" cy="${cy}" r="23.5" fill="none" stroke="#F6D47E" stroke-width="2.5" pointer-events="none"/>`);
+    P.push(pieceSVG(cx, cy, s.p, q, (moved||placed)&&live?'class="moved"':""));
+  });
+  /* lados livres para o muro */
+  if (mine && dest){
+    const s=g.stones[sel], fr=s.r, fc=s.c; s.r=dest[0]; s.c=dest[1];
+    const fe=C.freeEdges(g,dest[0],dest[1]); s.r=fr; s.c=fc;
+    fe.forEach(e=>{ P.push(wallSVG(e, p, q, `class="gwall" data-edge="${e.k},${e.r},${e.c}"`, .6)); P.push(hitEdge(e,`data-edge="${e.k},${e.r},${e.c}"`)); });
+  }
+  return `<svg class="${o.cls||"board"}" viewBox="0 0 ${SIZE} ${SIZE}" ${o.id?`id="${o.id}"`:""} aria-label="Tabuleiro">${P.join("")}</svg>`;
+}
+
+/* ---------------- tela do jogo ---------------- */
+function hintText(){
+  if (G.over) return "Fim de jogo!";
+  const p=G.turn, nm=NAMES[p];
+  if (!myTurn()) return MODE==="ai" ? "O computador está pensando…" : MODE==="online" ? "Vez do seu amigo. Aguarde…" : `Vez de ${nm}. Aguarde…`;
+  const who = MODE==="local" ? `${nm}: ` : "";
+  if (G.phase==="place"){ const run=G.placeOrder[G.placeIdx+1]===p?" (mais uma depois desta)":""; return `${who}toque numa casa vazia para colocar uma peça${run}`; }
+  if (breaking) return `${who}toque no muro que quer derrubar`;
+  if (sel===null) return `${who}toque numa peça sua`;
+  if (!dest) return `${who}escolha onde parar (até 2 casas) ou toque na própria peça para ficar`;
+  return `${who}agora levante um muro num dos lados da peça`;
+}
+function game(){
+  const t=C.territory(G), p=G.turn;
+  const pc=q=>`<div class="pc ${!G.over&&G.turn===q?"on":""}">${miniPiece(q)}<div><b>${esc(NAMES[q])}</b><small>Área: ${t[q]}</small></div><span class="hm ${G.breaker[q]?"":"used"}" title="Derrubador">${ico("hammer",18)}</span></div>`;
+  const canBreak = myTurn() && G.phase==="play" && G.breaker[p] && !dest && C.breakable(G,p).length>0;
+  app.innerHTML=`<div class="screen" style="padding-top:12px">
+    <div class="gtop"><button class="icon" id="menu" aria-label="Menu">${ico("menu",20)}</button><div class="t">${MODE==="online"?"Online":MODE==="ai"?"Contra o computador":"Partida local"}</div>${MODE==="online"?`<span class="room">SALA ${esc(NET?NET.code:"")}</span>`:""}</div>
+    <div class="players">${pc(1)}${pc(2)}</div>
+    <div class="hint ${G.over?"":"t"+p}">${esc(hintText())}</div>
+    <div class="boardwrap">${drawBoard(G,{q:"g", id:"board", live:true})}</div>
+    ${G.note?`<div class="banner">${esc(G.note)}</div>`:""}
+    ${NET && NET.lost ? `<div class="banner">Conexão perdida. Aguardando o amigo voltar…</div>`:""}
+    <div class="actions">
+      ${canBreak && !breaking ? `<button class="btn light" id="brk">${ico("hammer",18)} Derrubar muro</button>`:""}
+      ${myTurn() && (sel!==null || breaking) ? `<button class="btn light" id="cancel">Cancelar</button>`:""}
+      ${G.over ? `<button class="btn p1" id="res">Ver resultado</button>`:""}
+    </div></div>`;
+  document.getElementById("menu").onclick=()=>{ if (MODE==="online" && !G.over && !confirmLeave()) return; home(); };
+  const b=document.getElementById("brk"); if(b) b.onclick=()=>{ breaking=true; sel=dest=null; sfx.tap(); game(); };
+  const c=document.getElementById("cancel"); if(c) c.onclick=()=>{ breaking=false; sel=dest=null; game(); };
+  document.getElementById("board").addEventListener("click", onBoard);
+  const rs=document.getElementById("res"); if(rs) rs.onclick=()=>{ document.querySelectorAll(".over").forEach(x=>x.remove()); showEnd(); };
+  if (G.over) showEnd();
+}
+let leaveArmed=0;
+function confirmLeave(){ if (Date.now()-leaveArmed<3000) return true; leaveArmed=Date.now(); toast("Toque de novo para sair da partida online"); return false; }
+
+function onBoard(ev){
+  if (!myTurn()) return;
+  const t=ev.target.closest("[data-cell],[data-edge],[data-wall]"); if(!t) return;
+  const p=G.turn;
+  if (t.dataset.wall){ const [k,r,c]=t.dataset.wall.split(","); act({t:"break",k,r:+r,c:+c}); return; }
+  if (t.dataset.edge){ const [k,r,c]=t.dataset.edge.split(","); act({t:"move",s:sel,r:dest[0],c:dest[1],w:{k,r:+r,c:+c}}); return; }
+  const [r,c]=t.dataset.cell.split(",").map(Number);
+  if (G.phase==="place"){ act({t:"place",r,c}); return; }
+  if (breaking){ breaking=false; game(); return; }
+  const si=C.stoneAt(G,r,c);
+  if (dest){ // trocar o destino ou desistir
+    if (sel!==null && C.destinations(G,sel).some(([a,b])=>a===r&&b===c)){ dest=[r,c]; sfx.tap(); }
+    else { dest=null; if (si>=0 && G.stones[si].p===p) sel=si; }
+    game(); return;
+  }
+  if (sel!==null && C.destinations(G,sel).some(([a,b])=>a===r&&b===c)){ dest=[r,c]; sfx.tap(); game(); return; }
+  if (si>=0 && G.stones[si].p===p){
+    if (!C.destinations(G,si).length){ toast("Essa peça não tem para onde ir"); sfx.bad(); return; }
+    sel=si; dest=null; sfx.tap(); game(); return;
+  }
+  sel=null; game();
+}
+function act(a){
+  const err=C.apply(G,a, MODE==="online"?ME:undefined);
+  if (err){ toast(err); sfx.bad(); return; }
+  ({place:sfx.place, break:sfx.brk, move:sfx.wall})[a.t]();
+  sel=null; dest=null; breaking=false;
+  save(); if (MODE==="online") netSend();
+  game(); maybeAI();
+}
+function maybeAI(){
+  clearTimeout(aiTimer);
+  if (MODE!=="ai" || !G || G.over || G.turn!==2) return;
+  aiTimer=setTimeout(()=>{ const m=C.aiMove(G,LEVEL); if(!m) return; C.apply(G,m); ({place:sfx.place, break:sfx.brk, move:sfx.wall})[m.t](); save(); game(); maybeAI(); }, 650);
+}
+function showEnd(){
+  document.querySelectorAll(".over").forEach(x=>x.remove());
+  const r=G.result, w=G.winner;
+  let title = w===0 ? "Empate!" : MODE==="ai" ? (w===1?"Você venceu!":"O computador venceu") : MODE==="online" ? (w===ME?"Você venceu!":"Seu amigo venceu") : `${NAMES[w]} venceu!`;
+  const d=document.createElement("div"); d.className="over";
+  d.innerHTML=`<div class="sheet"><h2 style="color:${w?COL[w].c:"var(--ink)"}">${title}</h2>
+    <div class="score"><div>${miniPiece(1)}<b style="color:${COL[1].c}">${esc(r[1])}</b><span>${esc(NAMES[1])}</span></div><div>${miniPiece(2)}<b style="color:${COL[2].c}">${esc(r[2])}</b><span>${esc(NAMES[2])}</span></div></div>
+    <p class="muted" style="font-weight:600;margin:0 0 16px">${r.tiebreak?`Mesma área total: venceu a maior área única (${esc(r.big[w])} casas).`:"Pontos = casas cercadas só com peças de cada jogador."}</p>
+    <div class="stack"><button class="btn ${w===2?"p2":"p1"}" id="again">Jogar de novo</button><button class="btn light" id="view">Ver tabuleiro</button><button class="btn light" id="home">Menu</button></div></div>`;
+  document.body.appendChild(d);
+  if (!G._celebrated){ G._celebrated=true; if (w===0 || MODE==="local" || (MODE==="ai"&&w===1) || (MODE==="online"&&w===ME)){ sfx.win(); confetti(); } }
+  const close=()=>d.remove();
+  d.querySelector("#view").onclick=()=>{ close(); };
+  d.querySelector("#home").onclick=()=>{ close(); home(); };
+  d.querySelector("#again").onclick=()=>{ close(); const first=C.other(G.first||1);
+    if (MODE==="online"){ G=C.newGame({first}); sel=dest=null; netSend(); game(); }
+    else startGame(MODE,{first: MODE==="ai"?1:first}); };
+  save();
+}
+
+/* =========================================================
+   ONLINE — sala com código. O mesmo arquivo roda em dois lugares:
+   - no Claude: recurso "room" do Claude (a página do Claude bloqueia WebSocket e WebRTC);
+   - no site (GitHub Pages): PeerJS (WebRTC), sem servidor próprio.
+   Cada aparelho publica na sua "presença" o estado completo da partida (seq + G);
+   vale sempre o estado com o maior seq. O anfitrião é o jogador 1 (vermelhas);
+   quem entra é o jogador 2 (pretas).
+   ========================================================= */
+const ARTIFACT_URL="https://claude.ai/artifact/NXcw7UTXHHvsGPg2AjVzHh";
+const SITE_URL="https://mourafelipe.github.io/cercado/";
+const ON_SITE=/(^|\.)github\.io$/i.test(location.hostname) || new URLSearchParams(location.search).has("peer");
+let NET=null, ROOM=null, ROOM_OFF=null;
+const ALPH="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const genCode=()=>[...Array(5)].map(()=>ALPH[Math.random()*ALPH.length|0]).join("");
+const roomLink=code=>(ON_SITE ? location.origin+location.pathname : ARTIFACT_URL)+"#sala-"+code;
+
+/* ---- transporte no Claude: recurso "room" ---- */
+async function getRoom(){
+  if (ROOM) return ROOM;
+  for (let i=0;i<40 && !(window.claude && window.claude.use);i++) await new Promise(r=>setTimeout(r,100));
+  if (!(window.claude && window.claude.use)) return null;
+  try{ ROOM=await window.claude.use("room"); }catch(e){ ROOM=null; }
+  if (ROOM && !ROOM_OFF) ROOM_OFF=ROOM.onPeers(ch=>{ if (NET && NET.T===ROOM) onPeers(ch); }, ()=>{ ROOM=null; ROOM_OFF=null; if (NET && !ON_SITE){ netClose(); offline(); } });
+  return ROOM;
+}
+
+/* ---- transporte no site: PeerJS, imitando a mesma "presença" ---- */
+const peerId=code=>"cercado-mf-"+code.toLowerCase();
+function loadPeer(){ return new Promise((res,rej)=>{ if(window.Peer) return res(); const s=document.createElement("script"); s.src="peerjs.min.js"; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+function myLabel(code){ // o convidado mantém o mesmo rótulo ao recarregar, para voltar ao lugar dele
+  const k="cercado-eu-"+code; let v=null;
+  try{ v=sessionStorage.getItem(k); }catch(e){}
+  if (!v){ v="g"+Math.random().toString(36).slice(2,10); try{ sessionStorage.setItem(k,v); }catch(e){} }
+  return v;
+}
+async function peerT(code, role){
+  await loadPeer();
+  return new Promise((resolve, reject)=>{
+    const me={peer: role==="host"?"host":myLabel(code), sameTab:true, isMe:true, kind:"viewer", presence:{}};
+    const conns=new Map(); let ready=false, peer;
+    const T={
+      presence: async patch=>{ const n={...me.presence}; for (const k in patch){ if (patch[k]===null) delete n[k]; else n[k]=patch[k]; } me.presence=n;
+        conns.forEach((x,c)=>{ try{ if (c.open) c.send({t:"pres", peer:me.peer, pres:n}); }catch(e){} }); tell(); },
+      peers: ()=>[me, ...[...conns.values()].filter(x=>x.peer).map(x=>({peer:x.peer, sameTab:false, isMe:false, kind:"viewer", presence:x.presence}))],
+      close: ()=>{ try{ peer.destroy(); }catch(e){} }
+    };
+    const tell=()=>setTimeout(()=>{ if (NET && NET.T===T) onPeers({peers:T.peers()}); },0);
+    const wire=conn=>{
+      conns.set(conn,{peer:null, presence:{}});
+      conn.on("open",()=>{ try{ conn.send({t:"pres", peer:me.peer, pres:me.presence}); }catch(e){} });
+      conn.on("data",d=>{ const x=conns.get(conn); if (x && d && d.t==="pres" && typeof d.peer==="string" && d.pres && typeof d.pres==="object"){ x.peer=d.peer; x.presence=d.pres; tell(); } });
+      const drop=()=>{ if (conns.delete(conn)) tell(); };
+      conn.on("close",drop); conn.on("error",drop);
+    };
+    if (role==="host"){
+      peer=new Peer(peerId(code),{debug:0});
+      peer.on("open",()=>{ ready=true; resolve(T); });
+      peer.on("connection",wire);
+    } else {
+      peer=new Peer({debug:0});
+      peer.on("open",()=>{ ready=true; wire(peer.connect(peerId(code),{reliable:true})); resolve(T); });
+    }
+    peer.on("disconnected",()=>{ try{ peer.reconnect(); }catch(e){} });
+    peer.on("error",e=>{
+      if (!ready){ try{ peer.destroy(); }catch(x){} return reject(e && e.type==="unavailable-id" ? "taken" : "net"); }
+      if (e && e.type==="peer-unavailable" && NET && NET.T===T && !NET.joined){ netClose(); toast("Sala não encontrada. Confira o código."); onlineMenu(); }
+    });
+  });
+}
+
+/* ---- estado da sala ---- */
+function cleanG(g){ const x=C.clone(g); delete x._celebrated; return x; }
+function validG(g){
+  const ok=v=>Number.isInteger(v)&&v>=0&&v<N, pl=v=>v===1||v===2;
+  return !!g && typeof g==="object" && Array.isArray(g.stones) && g.stones.length<=8
+    && g.stones.every(s=>s && pl(s.p) && ok(s.r) && ok(s.c))
+    && Array.isArray(g.h) && g.h.length===N-1 && g.h.every(r=>Array.isArray(r)&&r.length===N)
+    && Array.isArray(g.vw) && g.vw.length===N && g.vw.every(r=>Array.isArray(r)&&r.length===N-1)
+    && pl(g.turn) && [0,1,2].includes(g.winner) && Array.isArray(g.placeOrder) && g.breaker && typeof g.breaker==="object";
+}
+function publish(bump){
+  if (!NET || !NET.T) return;
+  if (bump) NET.seq++;
+  const p={app:"cercado", code:NET.code, role:NET.role, seq:NET.seq, mate:NET.mate||null, mateOn:!!NET.mate && !NET.lost, G:(G && MODE==="online")?cleanG(G):null};
+  Promise.resolve(NET.T.presence(p)).catch(()=>{});
+}
+function netSend(){ publish(true); }
+function netClose(){
+  if (!NET) return;
+  clearTimeout(NET.timer);
+  const T=NET.T; NET=null;
+  if (!T) return;
+  if (T.close) T.close();
+  else T.presence({app:null, code:null, role:null, seq:null, mate:null, mateOn:null, G:null}).catch(()=>{});
+}
+function offline(){
+  app.innerHTML=`<div class="screen"><button class="back" id="bk">← Voltar</button><h1 class="title">Online indisponível</h1>
+    <div class="plaque" style="border-radius:14px;padding:12px 16px;margin:12px 0;line-height:1.45">
+      Não foi possível conectar ao modo online por aqui.<br><br>
+      Pelo Claude, os dois precisam abrir o jogo logados, e o seu amigo precisa ter acesso a ele. Pelo site, funciona para qualquer pessoa.
+    </div>
+    <a class="btn light" href="${SITE_URL}" target="_blank" rel="noopener">Jogar online pelo site</a></div>`;
+  document.getElementById("bk").onclick=home;
+}
+
+function onlineMenu(){
+  app.innerHTML=`<div class="screen"><button class="back" id="bk">← Voltar</button><h1 class="title">Online com um amigo</h1>
+    <p class="muted" style="font-weight:600;margin:0 0 18px">Cada um joga no seu celular. Um cria a sala e manda o código ou o link para o outro.</p>
+    <button class="btn p1" id="create">Criar sala</button>
+    <p style="text-align:center;font-weight:700;color:var(--on2);margin:20px 0 10px">ou entre numa sala</p>
+    <input class="inp" id="code" maxlength="5" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters">
+    <button class="btn p2" id="join" style="margin-top:12px">Entrar</button></div>`;
+  document.getElementById("bk").onclick=home;
+  document.getElementById("create").onclick=()=>{ sfx.tap(); createRoom(); };
+  const inp=document.getElementById("code");
+  inp.oninput=()=>{ inp.value=inp.value.toUpperCase().replace(/[^A-Z0-9]/g,""); };
+  document.getElementById("join").onclick=()=>{ const c=inp.value.trim(); if(c.length!==5){ toast("O código tem 5 letras/números"); return; } sfx.tap(); joinRoom(c); };
+}
+function waitScreen(title, body){ app.innerHTML=`<div class="screen"><button class="back" id="bk">← Cancelar</button><h1 class="title">${title}</h1>${body}</div>`; document.getElementById("bk").onclick=home; }
+
+function lobby(){
+  const link=roomLink(NET.code);
+  waitScreen("Sala criada!", `<p class="muted" style="font-weight:600;margin:0">Mande este código para o seu amigo:</p>
+    <div class="code">${NET.code}</div>
+    <div class="linkbox" id="lk">${esc(link)}</div>
+    <div class="stack" style="margin-top:14px">
+      <button class="btn p1" id="share">${ico("share",18)} ${ON_SITE?"Compartilhar link":"Copiar link"}</button>
+      <a class="btn light" href="https://wa.me/?text=${encodeURIComponent("Bora jogar Cercado? Entra na minha sala: "+link)}" target="_blank" rel="noopener">Enviar pelo WhatsApp</a>
+    </div>
+    <div class="wait">Aguardando o amigo entrar <span class="dot3"><i></i><i></i><i></i></span></div>
+    <p class="muted" style="font-size:13px;text-align:center;font-weight:600">Deixe esta tela aberta. Você joga com as peças <b style="color:#E6967A">${COL[1].pl}</b>.${ON_SITE?"":"<br>Pelo Claude, seu amigo precisa abrir o link logado e ter acesso a este jogo."}</p>`);
+  document.getElementById("share").onclick=async()=>{
+    if (ON_SITE && navigator.share){ try{ await navigator.share({title:"Cercado", text:"Entra na minha sala do Cercado:", url:link}); return; }catch(e){ if (e && e.name==="AbortError") return; } }
+    try{ await navigator.clipboard.writeText(link); toast("Link copiado!"); }
+    catch(e){ const r=document.createRange(); r.selectNodeContents(document.getElementById("lk")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Selecione e copie o link"); }
+  };
+}
+
+async function createRoom(){
+  netClose(); MODE=null;
+  const stamp={}; NET={role:"host", code:"", seq:0, mate:null, lost:false, stamp};
+  waitScreen("Criando sala…", `<div class="wait">Conectando <span class="dot3"><i></i><i></i><i></i></span></div>`);
+  let T=null, code="";
+  if (ON_SITE){
+    for (let i=0;i<4 && !T;i++){
+      code=genCode();
+      try{ T=await peerT(code,"host"); }
+      catch(e){ if (e!=="taken"){ if (NET && NET.stamp===stamp){ NET=null; toast("Erro de conexão: verifique a internet"); onlineMenu(); } return; } }
+    }
+  } else {
+    T=await getRoom();
+    if (T){ const taken=new Set(T.peers().map(p=>p.presence && p.presence.code).filter(Boolean)); do code=genCode(); while(taken.has(code)); }
+  }
+  if (!NET || NET.stamp!==stamp){ if (T && T.close) T.close(); return; }   // cancelou enquanto conectava
+  if (!T){ NET=null; return offline(); }
+  NET.T=T; NET.code=code;
+  publish(false); lobby();
+}
+
+async function joinRoom(code){
+  code=code.toUpperCase();
+  netClose();
+  const stamp={}; NET={role:"guest", code, seq:0, mate:null, lost:false, joined:false, stamp};
+  waitScreen("Entrando na sala…", `<div class="code">${esc(code)}</div><div class="wait">Conectando <span class="dot3"><i></i><i></i><i></i></span></div>`);
+  let T=null;
+  if (ON_SITE){ try{ T=await peerT(code,"guest"); }catch(e){ if (NET && NET.stamp===stamp){ NET=null; toast("Erro de conexão: verifique a internet"); onlineMenu(); } return; } }
+  else T=await getRoom();
+  if (!NET || NET.stamp!==stamp){ if (T && T.close) T.close(); return; }
+  if (!T){ NET=null; return offline(); }
+  NET.T=T;
+  publish(false);
+  NET.timer=setTimeout(()=>{ if (NET && NET.stamp===stamp && !NET.joined){ netClose(); toast("Sala não encontrada. Confira o código."); onlineMenu(); } }, 15000);
+  onPeers({peers:T.peers()});
+}
+
+/* chamado sempre que alguém entra, sai ou muda a presença */
+function onPeers(ch){
+  if (!NET || !NET.T) return;
+  const all=ch.peers||[], meP=all.find(p=>p.sameTab);
+  if (meP) NET.peer=meP.peer;
+  const others=all.filter(p=>!p.sameTab && p.kind==="viewer" && p.presence && p.presence.app==="cercado" && p.presence.code===NET.code);
+  if (NET.role==="host"){
+    let mate=others.find(p=>p.peer===NET.mate && p.presence.role==="guest");
+    if (!mate){
+      const cand=others.find(p=>p.presence.role==="guest");
+      if (cand){
+        const had=!!NET.mate; NET.mate=cand.peer; NET.lost=false;
+        if (!(MODE==="online" && G && !G.over)){ MODE="online"; ME=1; G=C.newGame(); sel=dest=null; breaking=false; }
+        NAMES={1:"Você",2:"Amigo"};
+        publish(true); sfx.place(); toast(had?"Seu amigo voltou!":"Seu amigo entrou!"); game(); return;
+      }
+      if (NET.mate && MODE==="online" && !NET.lost){ NET.lost=true; publish(false); game(); }
+      return;
+    }
+    const wasLost=NET.lost; NET.lost=false;
+    if (wasLost) publish(false);
+    if (!adopt(mate.presence) && wasLost) game();
+    return;
+  }
+  /* convidado */
+  const host=others.find(p=>p.presence.role==="host");
+  if (!host){ if (NET.joined && !NET.lost && MODE==="online"){ NET.lost=true; game(); } return; }
+  const hp=host.presence;
+  if (hp.mate && NET.peer && hp.mate!==NET.peer && hp.mateOn && (ON_SITE || others.some(p=>p.peer===hp.mate))){
+    if (!NET.joined){ netClose(); toast("Essa sala já tem dois jogadores."); onlineMenu(); }
+    else if (!NET.lost){ NET.lost=true; game(); }
+    return;
+  }
+  if (hp.mate===NET.peer && validG(hp.G)){
+    const first=!NET.joined, wasLost=NET.lost;
+    NET.joined=true; NET.lost=false; clearTimeout(NET.timer);
+    if (first){ NET.seq=-1; MODE="online"; ME=2; NAMES={1:"Amigo",2:"Você"}; }
+    if (!adopt(hp) && wasLost) game();
+  }
+}
+/* aceita o estado do outro aparelho se for mais novo */
+function adopt(pr){
+  if (!pr || !validG(pr.G) || !Number.isInteger(pr.seq) || pr.seq<=NET.seq) return false;
+  NET.seq=pr.seq; MODE="online";
+  G=pr.G; sel=dest=null; breaking=false;
+  const snd=G.last && ({place:sfx.place, break:sfx.brk, move:sfx.wall})[G.last.t]; if (snd) snd();
+  document.querySelectorAll(".over").forEach(x=>x.remove());
+  game();
+  return true;
+}
+
+/* abrir direto pelo link da sala */
+function fromHash(){
+  const m=location.hash.match(/^#sala-([A-Z0-9]{5})$/i);
+  if (m){ try{ history.replaceState(null,"",location.pathname+location.search); }catch(e){} joinRoom(m[1]); return true; }
+  return false;
+}
+window.addEventListener("hashchange", fromHash);
+if (!fromHash()) home();
+</script>
 </body>
 </html>
